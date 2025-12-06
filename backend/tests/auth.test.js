@@ -463,7 +463,7 @@ describe('Enhanced Authentication System', () => {
         await AuditLog.create({
           userId: testUser._id,
           eventType: 'login_failed',
-          ipAddress: '127.0.0.1',
+          ipAddress: '192.168.1.7',
           success: false
         });
       }

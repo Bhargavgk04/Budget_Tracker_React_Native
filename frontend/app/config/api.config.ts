@@ -8,12 +8,12 @@ import { STORAGE_KEYS } from '@/utils/constants';
  * API Configuration
  * 
  * Automatically detects the correct backend URL based on platform:
- * - Expo Go (Physical Device): Uses your computer's IP from Expo
- * - Android Emulator: Uses 10.0.2.2 (special alias for host machine)
- * - iOS Simulator: Uses localhost
- * - Web: Uses localhost
+ * - Expo Go (Physical Device): Uses Render backend
+ * - Android Emulator: Uses Render backend
+ * - iOS Simulator: Uses Render backend
+ * - Web: Uses Render backend
  * 
- * For Expo Go on physical device, it automatically uses your computer's IP!
+ * For all platforms, we use the Render backend for consistency!
  */
 
 // Fallback IP if Expo can't detect (update this to your computer's IP)
@@ -60,35 +60,14 @@ const isPhysicalDevice = (): boolean => {
 };
 
 const getDevBaseURL = () => {
-  if (Platform.OS === 'android') {
-    // For physical device (including Expo Go), use local network IP
-    if (isPhysicalDevice()) {
-      const ip = getLocalNetworkIP();
-      return `http://${ip}:3000/api`;
-    }
-    
-    // For Android emulator, use 10.0.2.2
-    return 'http://10.0.2.2:3000/api';
-  }
-  
-  if (Platform.OS === 'ios') {
-    // For physical iOS device (Expo Go), use local network IP
-    if (isPhysicalDevice()) {
-      const ip = getLocalNetworkIP();
-      return `http://${ip}:3000/api`;
-    }
-    
-    // iOS Simulator can use localhost
-    return 'https://budget-tracker-react-native-kjff.onrender.com/api';
-  }
-  
-  // Web
+  // Always use Render backend for all platforms
+  console.log('[API Config] Using Render backend');
   return 'https://budget-tracker-react-native-kjff.onrender.com/api';
 };
 
 export const API_CONFIG = {
-  DEV_BASE_URL: getDevBaseURL(),
-  PROD_BASE_URL: 'https://your-production-api.com/api',
+  DEV_BASE_URL: process.env.API_URL || 'https://budget-tracker-react-native-kjff.onrender.com/api',
+  PROD_BASE_URL: process.env.API_URL || 'https://budget-tracker-react-native-kjff.onrender.com/api',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
@@ -124,7 +103,8 @@ export const checkBackendConnection = async (): Promise<boolean> => {
 
 // Helper to get current API base URL
 export const getApiBaseUrl = (): string => {
-  return __DEV__ ? API_CONFIG.DEV_BASE_URL : API_CONFIG.PROD_BASE_URL;
+  // Always use production URL
+  return API_CONFIG.PROD_BASE_URL;
 };
 
 // Log current configuration in development

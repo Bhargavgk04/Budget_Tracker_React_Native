@@ -1,5 +1,11 @@
 {
   "expo": {
+    "plugins": [
+      "expo-dev-client"
+    ],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
     "name": "Budget Tracker",
     "slug": "mobile-budget-tracker",
     "version": "1.0.0",
@@ -13,13 +19,21 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bhargavgk.mobilebudgettracker"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6366F1"
       },
-      "package": "com.bhargavgk.mobilebudgettracker"
+      "package": "com.bhargavgk.mobilebudgettracker",
+      "versionCode": 1,
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"]
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#000000"
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +54,12 @@
     "extra": {
       "eas": {
         "projectId": "65ee79b5-5180-46c2-937a-005107b3ae7b"
-      }
+      },
+      "apiUrl": "https://budget-tracker-react-native-kjff.onrender.com/api"
+    },
+    "scheme": "budget-tracker",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     }
   }
 }

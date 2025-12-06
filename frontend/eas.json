@@ -12,9 +12,13 @@
       "distribution": "internal"
     },
     "production": {
-
+      "env": {
+        "API_URL": "https://budget-tracker-react-native-kjff.onrender.com/api",
+        "NODE_ENV": "production"
+      },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       }
     }
   },

@@ -45,29 +45,30 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const allowedOrigins = [
+  'https://budget-tracker-react-native-kjff.onrender.com',
+  'http://localhost:19006',  // For local development with Expo
+  'http://localhost:3000',   // For local backend development
+];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : [
-        'https://budget-tracker-react-native-kjff.onrender.com',
-        'http://localhost:8081',
-        'http://localhost:8082',
-        'http://localhost:8083',
-        'http://localhost:19006',
-        'http://192.168.1.7:8081',
-        'http://192.168.1.7:8082',
-        'http://192.168.1.7:8083',
-        'http://192.168.1.100:8081',
-        'http://10.0.2.2:3000',
-        'http://10.0.2.2:8081',
-        'http://10.0.2.2:8082',
-        'http://10.0.2.2:8083',
-        'http://10.0.2.2:19006',
-      ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin) || 
+        process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // Block requests from other origins
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-Request-ID', 'X-Response-Time']
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
 // Rate limiting
@@ -191,7 +192,7 @@ app.use(errorHandler);
 // Database connection with enhanced error handling
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/budget-tracker';
+    const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://bhargavkatkam0_db_user:Bhargavk%401104@budget-tracker-prod.fd2ctnp.mongodb.net/';
     
     console.log('Attempting to connect to MongoDB...');
     console.log('MongoDB URI:', mongoURI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')); // Hide password in logs
@@ -238,9 +239,8 @@ connectDB()
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✓ Server running on port ${PORT}`);
     console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`  API Base URL: http://localhost:${PORT}/api`);
-    console.log(`  Network URL: http://192.168.1.7:${PORT}/api`);
-    console.log(`  Health Check: http://localhost:${PORT}/health\n`);
+    console.log(`  API Base URL: https://budget-tracker-react-native-kjff.onrender.com/api`);
+    console.log(`  Health Check: https://budget-tracker-react-native-kjff.onrender.com/health\n`);
   });
 
   // Graceful shutdown

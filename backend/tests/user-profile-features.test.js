@@ -12,7 +12,7 @@ jest.setTimeout(30000);
 describe('User Profile Features', () => {
   beforeAll(async () => {
     // Connect to test database
-    await mongoose.connect(process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/budget-tracker-test', {
+    await mongoose.connect(process.env.MONGODB_TEST_URI || 'mongodb+srv://bhargavkatkam0_db_user:Bhargavk%401104@budget-tracker-prod.fd2ctnp.mongodb.net/', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

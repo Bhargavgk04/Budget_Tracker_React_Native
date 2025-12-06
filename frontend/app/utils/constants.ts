@@ -3,56 +3,8 @@ import Constants from 'expo-constants';
 
 // Dynamic base URL function
 const getApiBaseUrl = (): string => {
-  const FALLBACK_LOCAL_IP = '192.168.1.7';
-  
-  // Get the local network IP from Expo or use fallback
-  const getLocalNetworkIP = (): string => {
-    const debuggerHost = Constants.expoConfig?.hostUri;
-    
-    if (debuggerHost) {
-      const ip = debuggerHost.split(':')[0];
-      return ip;
-    }
-    
-    return FALLBACK_LOCAL_IP;
-  };
-
-  // Detect if running in Expo Go on physical device
-  const isExpoGo = (): boolean => {
-    return Constants.appOwnership === 'expo';
-  };
-
-  // Auto-detect if running on physical device vs emulator
-  const isPhysicalDevice = (): boolean => {
-    if (Platform.OS === 'web') return false;
-    
-    if (isExpoGo()) {
-      return true;
-    }
-    
-    if (process.env.USE_PHYSICAL_DEVICE === 'true') {
-      return true;
-    }
-    
-    return Platform.OS === 'ios';
-  };
-
-  if (Platform.OS === 'android') {
-    if (isPhysicalDevice()) {
-      const ip = getLocalNetworkIP();
-      return `http://${ip}:3000/api`;
-    }
-    return 'http://10.0.2.2:3000/api';
-  }
-  
-  if (Platform.OS === 'ios') {
-    if (isPhysicalDevice()) {
-      const ip = getLocalNetworkIP();
-      return `http://${ip}:3000/api`;
-    }
-    return 'https://budget-tracker-react-native-kjff.onrender.com/api';
-  }
-  
+  // Always use Render backend
+  console.log('[Constants] Using Render backend');
   return 'https://budget-tracker-react-native-kjff.onrender.com/api';
 };
 
