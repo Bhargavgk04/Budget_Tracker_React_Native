@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Budget Tracker</title>
+  <link rel="stylesheet" href="./web.css">
+  <style>
+    /* Override any system dark mode preferences */
+    :root {
+      color-scheme: light;
+    }
+    
+    /* Force light theme */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: light;
+      }
+    }
+    
+    body {
+      color-scheme: light;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

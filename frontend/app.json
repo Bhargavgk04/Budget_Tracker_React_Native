@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Budget Tracker",
+    "slug": "mobile-budget-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#6366F1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6366F1"
+      },
+      "package": "com.bhargavgk.mobilebudgettracker"
+    },
+    "web": {
+      "bundler": "metro",
+      "theme": {
+        "primaryColor": "#6366F1",
+        "backgroundColor": "#F8FAFC"
+      },
+      "favicon": "./assets/favicon.png",
+      "meta": {
+        "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      }
+    },
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "65ee79b5-5180-46c2-937a-005107b3ae7b"
+      }
+    }
+  }
+}
