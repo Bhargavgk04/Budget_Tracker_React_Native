@@ -79,11 +79,11 @@ const getDevBaseURL = () => {
     }
     
     // iOS Simulator can use localhost
-    return 'http://localhost:3000/api';
+    return 'https://budget-tracker-react-native-kjff.onrender.com/api';
   }
   
   // Web
-  return 'http://localhost:3000/api';
+  return 'https://budget-tracker-react-native-kjff.onrender.com/api';
 };
 
 export const API_CONFIG = {

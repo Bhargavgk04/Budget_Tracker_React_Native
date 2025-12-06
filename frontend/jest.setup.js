@@ -12,7 +12,7 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 
 // Mock constants to provide BASE_URL
 jest.mock('@/utils/constants', () => ({
-  API_ENDPOINTS: { BASE_URL: 'http://localhost:3000/api' },
+  API_ENDPOINTS: { BASE_URL: 'https://budget-tracker-react-native-kjff.onrender.com/api' },
   STORAGE_KEYS: { AUTH_TOKEN: 'auth_token' },
 }), { virtual: true });
 

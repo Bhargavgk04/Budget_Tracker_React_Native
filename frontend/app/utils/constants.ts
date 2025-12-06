@@ -50,10 +50,10 @@ const getApiBaseUrl = (): string => {
       const ip = getLocalNetworkIP();
       return `http://${ip}:3000/api`;
     }
-    return 'http://localhost:3000/api';
+    return 'https://budget-tracker-react-native-kjff.onrender.com/api';
   }
   
-  return 'http://localhost:3000/api';
+  return 'https://budget-tracker-react-native-kjff.onrender.com/api';
 };
 
 // Screen dimensions

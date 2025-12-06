@@ -49,7 +49,7 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL 
     : [
-        'http://localhost:3000',
+        'https://budget-tracker-react-native-kjff.onrender.com',
         'http://localhost:8081',
         'http://localhost:8082',
         'http://localhost:8083',
