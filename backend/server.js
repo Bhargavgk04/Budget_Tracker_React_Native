@@ -274,7 +274,7 @@ connectDB()
       console.log('Process terminated');
       await mongoose.connection.close();
       // Close email service connection pool
-      const emailService = require('./services/EmailService');
+      const emailService = require('./services/emailService');
       await emailService.close();
       process.exit(0);
     });
@@ -286,7 +286,7 @@ connectDB()
       console.log('Process terminated');
       await mongoose.connection.close();
       // Close email service connection pool
-      const emailService = require('./services/EmailService');
+      const emailService = require('./services/emailService');
       await emailService.close();
       process.exit(0);
     });

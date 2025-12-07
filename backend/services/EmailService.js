@@ -34,18 +34,7 @@ class EmailService {
       });
 
       this.initialized = true;
-      console.log('✓ Email service initialized with connection pooling');
-      
-      // Skip verification on startup - it will be done on first email send
-      // This prevents blocking the server startup
-      if (process.env.NODE_ENV !== 'production') {
-        // Only verify in development, and don't wait for it
-        setTimeout(() => {
-          this.verifyConnection().catch(() => {
-            console.log('⚠️  Email verification failed - emails will still be attempted');
-          });
-        }, 5000); // Verify after 5 seconds, not immediately
-      }
+      console.log('✓ Email service initialized (verification skipped for faster startup)');
     } catch (error) {
       console.error('✗ Email service initialization failed:', error.message);
       this.initialized = false;
@@ -64,10 +53,10 @@ class EmailService {
         return true;
       }
 
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging - increased to 10 seconds for Render
       const verifyPromise = this.transporter.verify();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 3000)
+        setTimeout(() => reject(new Error('Connection timeout')), 10000)
       );
 
       await Promise.race([verifyPromise, timeoutPromise]);
@@ -77,6 +66,7 @@ class EmailService {
     } catch (error) {
       console.error('✗ Email service verification failed:', error.message);
       this.isVerified = false;
+      // Don't throw - just return false so emails can still be attempted
       return false;
     }
   }

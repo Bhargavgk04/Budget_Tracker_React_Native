@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const Category = require("../models/Category");
 const AuditLog = require("../models/AuditLog");
-const emailService = require("../services/EmailService");
+const emailService = require("../services/emailService");
 const {
   validateRegister,
   validateLogin,
