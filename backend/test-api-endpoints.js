@@ -1,6 +1,6 @@
 const http = require('http');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://budget-tracker-react-native-kjff.onrender.com';
 
 function makeRequest(path, method = 'GET', data = null, token = null) {
   return new Promise((resolve, reject) => {

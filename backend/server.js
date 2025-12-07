@@ -51,7 +51,7 @@ app.use(helmet({
 const allowedOrigins = [
   'https://budget-tracker-react-native-kjff.onrender.com',
   'http://localhost:19006',  // For local development with Expo
-  'http://localhost:3000',   // For local backend development
+  'https://budget-tracker-react-native-kjff.onrender.com',   // For local backend development
   'http://192.168.0.125:8081', // Your mobile device IP
   'http://192.168.0.125:3000', // Your mobile device IP for backend
   'http://192.168.0.125:*',   // Allow all ports from your mobile device IP
