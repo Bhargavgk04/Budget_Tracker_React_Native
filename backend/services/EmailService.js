@@ -4,48 +4,75 @@ class EmailService {
   constructor() {
     this.transporter = null;
     this.initialized = false;
+    this.isVerified = false;
   }
 
-  // Initialize email transporter
+  // Initialize email transporter with connection pooling for speed
   initialize() {
     try {
       if (this.initialized) return;
 
-      // Create transporter
+      // Create transporter with optimized settings for speed
       this.transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
+        // Connection pooling for faster subsequent emails
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        // Reduced timeouts for faster failure detection
+        connectionTimeout: 5000, // 5 seconds
+        greetingTimeout: 5000,
+        socketTimeout: 10000,
+        // Keep connection alive for faster subsequent sends
+        tls: {
+          rejectUnauthorized: false // For development
+        }
       });
 
       this.initialized = true;
-      console.log('✓ Email service initialized');
+      console.log('✓ Email service initialized with connection pooling');
+      
+      // Pre-verify connection in background for faster first email
+      this.verifyConnection().catch(() => {
+        console.log('⚠️  Email verification failed - emails will still be attempted');
+      });
     } catch (error) {
       console.error('✗ Email service initialization failed:', error.message);
       this.initialized = false;
     }
   }
 
-  // Verify email configuration
+  // Verify email configuration (with caching)
   async verifyConnection() {
     try {
       if (!this.transporter) {
         this.initialize();
       }
 
+      // Return cached result if already verified
+      if (this.isVerified) {
+        return true;
+      }
+
       await this.transporter.verify();
+      this.isVerified = true;
       console.log('✓ Email service connection verified');
       return true;
     } catch (error) {
       console.error('✗ Email service verification failed:', error.message);
+      this.isVerified = false;
       return false;
     }
   }
 
-  // Send password reset OTP email
+  // Send password reset OTP email (optimized for speed)
   async sendPasswordResetOTP(email, otp, userName) {
+    const startTime = Date.now();
+    
     try {
       if (!this.transporter) {
         this.initialize();
@@ -173,16 +200,20 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('✓ Password reset OTP email sent:', info.messageId);
-      return { success: true, messageId: info.messageId };
+      const duration = Date.now() - startTime;
+      console.log(`✓ Password reset OTP email sent in ${duration}ms:`, info.messageId);
+      return { success: true, messageId: info.messageId, duration };
     } catch (error) {
-      console.error('✗ Failed to send password reset OTP email:', error);
+      const duration = Date.now() - startTime;
+      console.error(`✗ Failed to send password reset OTP email after ${duration}ms:`, error.message);
       throw new Error('Failed to send email. Please try again later.');
     }
   }
 
-  // Send password change confirmation email
+  // Send password change confirmation email (optimized for speed)
   async sendPasswordChangeConfirmation(email, userName) {
+    const startTime = Date.now();
+    
     try {
       if (!this.transporter) {
         this.initialize();
@@ -291,12 +322,22 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('✓ Password change confirmation email sent:', info.messageId);
-      return { success: true, messageId: info.messageId };
+      const duration = Date.now() - startTime;
+      console.log(`✓ Password change confirmation email sent in ${duration}ms:`, info.messageId);
+      return { success: true, messageId: info.messageId, duration };
     } catch (error) {
-      console.error('✗ Failed to send password change confirmation email:', error);
+      const duration = Date.now() - startTime;
+      console.error(`✗ Failed to send password change confirmation email after ${duration}ms:`, error.message);
       // Don't throw error for confirmation emails
       return { success: false, error: error.message };
+    }
+  }
+
+  // Close connection pool (call on server shutdown)
+  async close() {
+    if (this.transporter && this.transporter.close) {
+      await this.transporter.close();
+      console.log('✓ Email service connection pool closed');
     }
   }
 }

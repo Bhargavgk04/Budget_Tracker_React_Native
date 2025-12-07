@@ -268,20 +268,26 @@ connectDB()
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', () => {
+  process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully');
-    server.close(() => {
+    server.close(async () => {
       console.log('Process terminated');
-      mongoose.connection.close();
+      await mongoose.connection.close();
+      // Close email service connection pool
+      const emailService = require('./services/EmailService');
+      await emailService.close();
       process.exit(0);
     });
   });
 
-  process.on('SIGINT', () => {
+  process.on('SIGINT', async () => {
     console.log('SIGINT received, shutting down gracefully');
-    server.close(() => {
+    server.close(async () => {
       console.log('Process terminated');
-      mongoose.connection.close();
+      await mongoose.connection.close();
+      // Close email service connection pool
+      const emailService = require('./services/EmailService');
+      await emailService.close();
       process.exit(0);
     });
   });

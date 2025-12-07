@@ -226,7 +226,9 @@ export class ApiService {
 
     // Add timeout to prevent long waits
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    // Use longer timeout for POST requests (email sending can take time)
+    const timeoutDuration = method === 'POST' ? 30000 : 10000; // 30s for POST, 10s for others
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     requestOptions.signal = controller.signal;
 
     try {

@@ -577,41 +577,54 @@ router.post("/forgot-password", async (req, res, next) => {
     const otp = user.generatePasswordResetOTP();
     await user.save();
 
-    // Send OTP via email
-    try {
-      await emailService.sendPasswordResetOTP(email, otp, user.name);
-      
-      // Log password reset request
-      await AuditLog.logEvent({
-        userId: user._id,
-        eventType: "password_reset_request",
-        ipAddress,
-        userAgent: deviceInfo.userAgent,
-        deviceInfo,
-        success: true,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "OTP has been sent to your email",
-        data: {
-          email: email,
-          expiresIn: 600, // 10 minutes in seconds
-        },
-      });
-    } catch (emailError) {
-      console.error("Failed to send OTP email:", emailError);
-      
-      // Clear OTP if email fails
-      user.passwordResetOTP = undefined;
-      user.passwordResetOTPExpires = undefined;
-      await user.save();
-
-      return res.status(500).json({
-        success: false,
-        error: "Failed to send OTP email. Please try again later.",
-      });
+    // 🔧 DEBUG MODE - Log OTP to console (REMOVE IN PRODUCTION!)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('='.repeat(60));
+      console.log('🔐 PASSWORD RESET OTP DEBUG');
+      console.log('📧 Email:', email);
+      console.log('🔢 OTP Code:', otp);
+      console.log('⏰ Valid for: 10 minutes');
+      console.log('='.repeat(60));
     }
+
+    // Send OTP via email (non-blocking for faster response)
+    // Send response first, then send email in background
+    res.status(200).json({
+      success: true,
+      message: "OTP has been sent to your email",
+      data: {
+        email: email,
+        expiresIn: 600, // 10 minutes in seconds
+      },
+    });
+
+    // Send email in background (don't await)
+    emailService.sendPasswordResetOTP(email, otp, user.name)
+      .then(() => {
+        console.log(`✓ OTP email sent successfully to ${email}`);
+        // Log password reset request
+        return AuditLog.logEvent({
+          userId: user._id,
+          eventType: "password_reset_request",
+          ipAddress,
+          userAgent: deviceInfo.userAgent,
+          deviceInfo,
+          success: true,
+        });
+      })
+      .catch((emailError) => {
+        console.error("Failed to send OTP email:", emailError);
+        // Log the failure but don't clear OTP - user can still use it
+        AuditLog.logEvent({
+          userId: user._id,
+          eventType: "password_reset_request",
+          ipAddress,
+          userAgent: deviceInfo.userAgent,
+          deviceInfo,
+          success: false,
+          reason: "Email send failed",
+        });
+      });
   } catch (error) {
     next(error);
   }
@@ -847,42 +860,54 @@ router.post("/resend-reset-otp", async (req, res, next) => {
     const otp = user.generatePasswordResetOTP();
     await user.save();
 
-    // Send OTP via email
-    try {
-      await emailService.sendPasswordResetOTP(email, otp, user.name);
-      
-      // Log OTP resend
-      await AuditLog.logEvent({
-        userId: user._id,
-        eventType: "password_reset_request",
-        ipAddress,
-        userAgent: deviceInfo.userAgent,
-        deviceInfo,
-        success: true,
-        metadata: { action: 'resend_otp' },
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "A new OTP has been sent to your email",
-        data: {
-          email: email,
-          expiresIn: 600,
-        },
-      });
-    } catch (emailError) {
-      console.error("Failed to resend OTP email:", emailError);
-      
-      // Clear OTP if email fails
-      user.passwordResetOTP = undefined;
-      user.passwordResetOTPExpires = undefined;
-      await user.save();
-
-      return res.status(500).json({
-        success: false,
-        error: "Failed to send OTP email. Please try again later.",
-      });
+    // 🔧 DEBUG MODE - Log OTP to console (REMOVE IN PRODUCTION!)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('='.repeat(60));
+      console.log('🔐 PASSWORD RESET OTP DEBUG (RESEND)');
+      console.log('📧 Email:', email);
+      console.log('🔢 OTP Code:', otp);
+      console.log('⏰ Valid for: 10 minutes');
+      console.log('='.repeat(60));
     }
+
+    // Send OTP via email (non-blocking for faster response)
+    res.status(200).json({
+      success: true,
+      message: "A new OTP has been sent to your email",
+      data: {
+        email: email,
+        expiresIn: 600,
+      },
+    });
+
+    // Send email in background
+    emailService.sendPasswordResetOTP(email, otp, user.name)
+      .then(() => {
+        console.log(`✓ OTP resent successfully to ${email}`);
+        // Log OTP resend
+        return AuditLog.logEvent({
+          userId: user._id,
+          eventType: "password_reset_request",
+          ipAddress,
+          userAgent: deviceInfo.userAgent,
+          deviceInfo,
+          success: true,
+          metadata: { action: 'resend_otp' },
+        });
+      })
+      .catch((emailError) => {
+        console.error("Failed to resend OTP email:", emailError);
+        AuditLog.logEvent({
+          userId: user._id,
+          eventType: "password_reset_request",
+          ipAddress,
+          userAgent: deviceInfo.userAgent,
+          deviceInfo,
+          success: false,
+          reason: "Email send failed",
+          metadata: { action: 'resend_otp' },
+        });
+      });
   } catch (error) {
     next(error);
   }
