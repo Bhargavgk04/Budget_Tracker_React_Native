@@ -3,7 +3,45 @@ import Constants from 'expo-constants';
 
 // Dynamic base URL function
 const getApiBaseUrl = (): string => {
-  // Always use Render backend
+  // TEMPORARY: Always use Render backend for testing
+  // Change USE_LOCAL to true when you want to use local backend
+  const USE_LOCAL = false;
+  
+  if (USE_LOCAL && __DEV__) {
+    // For Android physical device or emulator, use your computer's IP
+    // Replace this with your actual computer's IP address on your local network
+    // To find your IP:
+    // - Windows: Open CMD and type 'ipconfig', look for IPv4 Address
+    // - Mac/Linux: Open Terminal and type 'ifconfig' or 'ip addr', look for inet
+    
+    if (Platform.OS === 'android') {
+      // For Android Emulator, use 10.0.2.2
+      // For Android Physical Device, use your computer's local IP
+      console.log('[Constants] Using local backend for Android');
+      
+      // Check if running in Expo Go (physical device)
+      const isExpoGo = Constants.appOwnership === 'expo';
+      
+      if (isExpoGo) {
+        // Physical device - REPLACE WITH YOUR COMPUTER'S IP ADDRESS
+        // Find your IP: Windows (ipconfig) or Mac/Linux (ifconfig)
+        return 'http://192.168.0.125:3000/api'; // ⚠️ UPDATE THIS WITH YOUR IP
+      } else {
+        // Android Emulator
+        return 'http://10.0.2.2:3000/api';
+      }
+    } else if (Platform.OS === 'ios') {
+      // For iOS Simulator, localhost works
+      console.log('[Constants] Using local backend for iOS');
+      return 'https://budget-tracker-react-native-kjff.onrender.com/api';
+    } else {
+      // For web
+      console.log('[Constants] Using local backend for Web');
+      return 'https://budget-tracker-react-native-kjff.onrender.com/api';
+    }
+  }
+  
+  // Production - use Render backend
   console.log('[Constants] Using Render backend');
   return 'https://budget-tracker-react-native-kjff.onrender.com/api';
 };

@@ -11,8 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TextInput } from '@/components/common/TextInput';
-import { Button } from '@/components/common/Button';
+import TextInput from '@/components/common/TextInput';
+import Button from '@/components/common/Button';
 import { apiService } from '@/services/ApiService';
 import { API_ENDPOINTS } from '@/utils/constants';
 
