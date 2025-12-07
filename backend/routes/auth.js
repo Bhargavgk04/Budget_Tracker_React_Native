@@ -577,16 +577,6 @@ router.post("/forgot-password", async (req, res, next) => {
     const otp = user.generatePasswordResetOTP();
     await user.save();
 
-    // 🔧 DEBUG MODE - Log OTP to console (REMOVE IN PRODUCTION!)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('='.repeat(60));
-      console.log('🔐 PASSWORD RESET OTP DEBUG');
-      console.log('📧 Email:', email);
-      console.log('🔢 OTP Code:', otp);
-      console.log('⏰ Valid for: 10 minutes');
-      console.log('='.repeat(60));
-    }
-
     // Send OTP via email (non-blocking for faster response)
     // Send response first, then send email in background
     res.status(200).json({
