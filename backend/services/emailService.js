@@ -190,25 +190,6 @@ class EmailService {
             </div>
           </body>
           </html>
-        `,
-        text: `
-          Password Reset OTP - Budget Tracker
-          
-          Hello ${userName || 'User'},
-          
-          We received a request to reset your password for your Budget Tracker account.
-          
-          Your OTP Code: ${otp}
-          
-          This OTP is valid for 10 minutes only.
-          
-          Security Notice:
-          - Never share this OTP with anyone
-          - If you didn't request this, please ignore this email
-          
-          If you didn't request a password reset, you can safely ignore this email.
-          
-          © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
         `;
 
       // Send via Resend or Nodemailer
