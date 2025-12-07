@@ -330,21 +330,6 @@ class EmailService {
             </div>
           </body>
           </html>
-        `,
-        text: `
-          Password Changed Successfully - Budget Tracker
-          
-          Hello ${userName || 'User'},
-          
-          Your password has been changed successfully!
-          Date: ${new Date().toLocaleString()}
-          
-          You can now log in to your Budget Tracker account using your new password.
-          
-          Didn't make this change?
-          If you didn't change your password, please contact our support team immediately.
-          
-          © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
         `;
 
       // Send via Resend or Nodemailer
