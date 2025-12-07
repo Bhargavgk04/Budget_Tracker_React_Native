@@ -10,6 +10,7 @@ After Fix:     ✅ Working (OTP sent, password reset)
 ## 🔧 What Changed
 
 ### Backend - User Model
+
 ```diff
 // backend/models/User.js
 
@@ -24,6 +25,7 @@ After Fix:     ✅ Working (OTP sent, password reset)
 ```
 
 ### Frontend - API Endpoints
+
 ```diff
 // frontend/app/utils/constants.ts
 
@@ -220,6 +222,7 @@ npm start
 ## ✅ Success Indicators
 
 ### During Deployment
+
 ```
 Render Dashboard shows:
 ✅ "Building..."
@@ -229,6 +232,7 @@ Render Dashboard shows:
 ```
 
 ### After Wake-Up
+
 ```
 Terminal shows:
 ✅ Backend responded in X seconds
@@ -237,6 +241,7 @@ Terminal shows:
 ```
 
 ### During Test
+
 ```
 Terminal shows:
 ✅ OTP sent successfully!
@@ -248,6 +253,7 @@ Terminal shows:
 ## ❌ Failure Indicators
 
 ### Deployment Failed
+
 ```
 Render Dashboard shows:
 ❌ "Build failed"
@@ -258,6 +264,7 @@ Solution: Check logs, fix errors, redeploy
 ```
 
 ### Backend Not Responding
+
 ```
 Terminal shows:
 ❌ Status: 502 Bad Gateway
@@ -267,6 +274,7 @@ Solution: Wait longer, check Render status
 ```
 
 ### Test Failed
+
 ```
 Terminal shows:
 ❌ Failed to send OTP
