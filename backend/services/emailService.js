@@ -3,38 +3,53 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.resend = null;
+    this.provider = null;
     this.initialized = false;
     this.isVerified = false;
   }
 
-  // Initialize email transporter with connection pooling for speed
+  // Initialize email service (Resend or Nodemailer)
   initialize() {
     try {
       if (this.initialized) return;
 
-      // Create transporter with optimized settings for production
-      this.transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        // Connection pooling for faster subsequent emails
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        // Increased timeouts for production environment (Render can be slower)
-        connectionTimeout: 30000, // 30 seconds
-        greetingTimeout: 30000,
-        socketTimeout: 60000, // 60 seconds
-        // Keep connection alive for faster subsequent sends
-        tls: {
-          rejectUnauthorized: process.env.NODE_ENV === 'production' // Strict in production
-        }
-      });
+      // Try Resend first if API key is available
+      if (process.env.RESEND_API_KEY) {
+        const { Resend } = require('resend');
+        this.resend = new Resend(process.env.RESEND_API_KEY);
+        this.provider = 'resend';
+        this.initialized = true;
+        console.log('✓ Email service initialized with Resend');
+        return;
+      }
 
-      this.initialized = true;
-      console.log('✓ Email service initialized (verification skipped for faster startup)');
+      // Fallback to Nodemailer (Gmail)
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        this.transporter = nodemailer.createTransport({
+          service: process.env.EMAIL_SERVICE || 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          pool: true,
+          maxConnections: 5,
+          maxMessages: 100,
+          connectionTimeout: 30000,
+          greetingTimeout: 30000,
+          socketTimeout: 60000,
+          tls: {
+            rejectUnauthorized: process.env.NODE_ENV === 'production'
+          }
+        });
+        this.provider = 'nodemailer';
+        this.initialized = true;
+        console.log('✓ Email service initialized with Nodemailer (Gmail)');
+        return;
+      }
+
+      console.warn('⚠ No email service configured. Set RESEND_API_KEY or EMAIL_USER/EMAIL_PASS');
+      this.initialized = false;
     } catch (error) {
       console.error('✗ Email service initialization failed:', error.message);
       this.initialized = false;
@@ -71,12 +86,12 @@ class EmailService {
     }
   }
 
-  // Send password reset OTP email (optimized for speed)
+  // Send password reset OTP email
   async sendPasswordResetOTP(email, otp, userName) {
     const startTime = Date.now();
     
     try {
-      if (!this.transporter) {
+      if (!this.initialized) {
         this.initialize();
       }
 
@@ -84,11 +99,7 @@ class EmailService {
         throw new Error('Email service not initialized');
       }
 
-      const mailOptions = {
-        from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Password Reset OTP - Budget Tracker',
-        html: `
+      const htmlContent = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -198,13 +209,50 @@ class EmailService {
           If you didn't request a password reset, you can safely ignore this email.
           
           © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
-        `,
-      };
+        `;
 
-      const info = await this.transporter.sendMail(mailOptions);
-      const duration = Date.now() - startTime;
-      console.log(`✓ Password reset OTP email sent in ${duration}ms:`, info.messageId);
-      return { success: true, messageId: info.messageId, duration };
+      // Send via Resend or Nodemailer
+      if (this.provider === 'resend') {
+        const result = await this.resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Budget Tracker <onboarding@resend.dev>',
+          to: email,
+          subject: 'Password Reset OTP - Budget Tracker',
+          html: htmlContent,
+        });
+        const duration = Date.now() - startTime;
+        console.log(`✓ Password reset OTP email sent via Resend in ${duration}ms:`, result.id);
+        return { success: true, messageId: result.id, duration };
+      } else {
+        const mailOptions = {
+          from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Password Reset OTP - Budget Tracker',
+          html: htmlContent,
+          text: `
+          Password Reset OTP - Budget Tracker
+          
+          Hello ${userName || 'User'},
+          
+          We received a request to reset your password for your Budget Tracker account.
+          
+          Your OTP Code: ${otp}
+          
+          This OTP is valid for 10 minutes only.
+          
+          Security Notice:
+          - Never share this OTP with anyone
+          - If you didn't request this, please ignore this email
+          
+          If you didn't request a password reset, you can safely ignore this email.
+          
+          © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
+        `,
+        };
+        const info = await this.transporter.sendMail(mailOptions);
+        const duration = Date.now() - startTime;
+        console.log(`✓ Password reset OTP email sent via Nodemailer in ${duration}ms:`, info.messageId);
+        return { success: true, messageId: info.messageId, duration };
+      }
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error(`✗ Failed to send password reset OTP email after ${duration}ms:`, error.message);
@@ -212,12 +260,12 @@ class EmailService {
     }
   }
 
-  // Send password change confirmation email (optimized for speed)
+  // Send password change confirmation email
   async sendPasswordChangeConfirmation(email, userName) {
     const startTime = Date.now();
     
     try {
-      if (!this.transporter) {
+      if (!this.initialized) {
         this.initialize();
       }
 
@@ -225,11 +273,7 @@ class EmailService {
         throw new Error('Email service not initialized');
       }
 
-      const mailOptions = {
-        from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Password Changed Successfully - Budget Tracker',
-        html: `
+      const htmlContent = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -320,13 +364,46 @@ class EmailService {
           If you didn't change your password, please contact our support team immediately.
           
           © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
-        `,
-      };
+        `;
 
-      const info = await this.transporter.sendMail(mailOptions);
-      const duration = Date.now() - startTime;
-      console.log(`✓ Password change confirmation email sent in ${duration}ms:`, info.messageId);
-      return { success: true, messageId: info.messageId, duration };
+      // Send via Resend or Nodemailer
+      if (this.provider === 'resend') {
+        const result = await this.resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Budget Tracker <onboarding@resend.dev>',
+          to: email,
+          subject: 'Password Changed Successfully - Budget Tracker',
+          html: htmlContent,
+        });
+        const duration = Date.now() - startTime;
+        console.log(`✓ Password change confirmation email sent via Resend in ${duration}ms:`, result.id);
+        return { success: true, messageId: result.id, duration };
+      } else {
+        const mailOptions = {
+          from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Password Changed Successfully - Budget Tracker',
+          html: htmlContent,
+          text: `
+          Password Changed Successfully - Budget Tracker
+          
+          Hello ${userName || 'User'},
+          
+          Your password has been changed successfully!
+          Date: ${new Date().toLocaleString()}
+          
+          You can now log in to your Budget Tracker account using your new password.
+          
+          Didn't make this change?
+          If you didn't change your password, please contact our support team immediately.
+          
+          © ${new Date().getFullYear()} Budget Tracker. All rights reserved.
+        `,
+        };
+        const info = await this.transporter.sendMail(mailOptions);
+        const duration = Date.now() - startTime;
+        console.log(`✓ Password change confirmation email sent via Nodemailer in ${duration}ms:`, info.messageId);
+        return { success: true, messageId: info.messageId, duration };
+      }
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error(`✗ Failed to send password change confirmation email after ${duration}ms:`, error.message);

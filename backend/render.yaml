@@ -22,5 +22,9 @@ services:
         value: thakurkakashi@gmail.com
       - key: EMAIL_PASS
         value: xwvg ekaz yvnu vbcl
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: Budget Tracker <onboarding@resend.dev>
     healthCheckPath: /health
     autoDeploy: true
