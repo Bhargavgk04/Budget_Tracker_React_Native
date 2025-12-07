@@ -60,7 +60,8 @@ export const DebtSimplificationView: React.FC<DebtSimplificationViewProps> = ({
             setIsCreatingSettlements(true);
             try {
               for (const debt of simplifiedDebts) {
-                await SettlementService.createSettlement(debt.to._id, {
+                await SettlementService.createSettlement({
+                  recipientId: debt.to._id,
                   amount: debt.amount,
                   paymentMethod: 'other',
                   notes: 'Simplified settlement',

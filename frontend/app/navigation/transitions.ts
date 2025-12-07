@@ -1,5 +1,6 @@
 import { TransitionPresets, StackNavigationOptions } from '@react-navigation/stack';
 import { Easing } from 'react-native';
+import type { StackCardInterpolationProps } from '@react-navigation/stack';
 
 // Custom transition configurations for optimal performance
 export const customTransitions = {
@@ -23,7 +24,7 @@ export const customTransitions = {
         },
       },
     },
-    cardStyleInterpolator: ({ current, layouts }) => {
+    cardStyleInterpolator: ({ current, layouts }: StackCardInterpolationProps) => {
       return {
         cardStyle: {
           transform: [
@@ -60,7 +61,7 @@ export const customTransitions = {
         },
       },
     },
-    cardStyleInterpolator: ({ current, layouts }) => {
+    cardStyleInterpolator: ({ current, layouts }: StackCardInterpolationProps) => {
       return {
         cardStyle: {
           transform: [
@@ -101,7 +102,7 @@ export const customTransitions = {
         },
       },
     },
-    cardStyleInterpolator: ({ current }) => {
+    cardStyleInterpolator: ({ current }: StackCardInterpolationProps) => {
       return {
         cardStyle: {
           opacity: current.progress,
@@ -130,7 +131,7 @@ export const customTransitions = {
         },
       },
     },
-    cardStyleInterpolator: ({ current }) => {
+    cardStyleInterpolator: ({ current }: StackCardInterpolationProps) => {
       return {
         cardStyle: {
           transform: [

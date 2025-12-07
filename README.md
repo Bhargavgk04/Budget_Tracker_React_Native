@@ -1,199 +1,313 @@
-# Budget Tracker
+# 💰 Budget Tracker Application
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React Native](https://img.shields.io/badge/React_Native-0.72.5-61DAFB?logo=react&logoColor=white)](https://reactnative.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-4.4+-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/budget-tracker/pulls)
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/budget-tracker?style=social)](https://github.com/yourusername/budget-tracker/stargazers)
+A full-stack budget tracking application with React Native frontend and Node.js backend.
 
-A comprehensive personal finance management solution designed to help users track expenses, manage budgets, and split costs with friends. Built with modern technologies for optimal performance and user experience.
+## 🌟 Status
 
-## ✨ Key Features
+✅ **FULLY OPERATIONAL**
 
-### 📊 Financial Management
-- **Expense Tracking**: Categorize and log daily transactions with custom tags
-- **Budget Planning**: Set and monitor spending limits with real-time alerts
-- **Visual Analytics**: Interactive charts and reports for expense visualization
-- **Transaction History**: Detailed records with advanced search and filtering
-- **Multi-Currency Support**: Track expenses in different currencies
+- **Backend:** Live on Render
+- **Database:** MongoDB Atlas (Connected)
+- **Frontend:** Ready to start
 
-### 🤝 Social & Sharing
-- **Expense Splitting**: Split bills with friends and track who owes what
-- **Group Budgets**: Create shared budgets for events or households
-- **Settlement Tracking**: Automated calculations for group expenses
-- **Export/Import**: CSV/PDF export for record keeping
+---
 
-### 🔒 Security & Privacy
-- End-to-end encryption for sensitive data
-- Biometric authentication (Face ID/Touch ID)
-- Secure cloud backup and sync
-- GDPR compliant data handling
+## 🚀 Quick Start
 
-## � Technology Stack
+### Backend (Already Running!)
+Your backend is **LIVE** on Render:
+```
+https://budget-tracker-react-native-kjff.onrender.com
+```
+
+✅ No need to start backend locally!
 
 ### Frontend
-- **Framework**: React Native 0.72.5 with Expo
-- **State Management**: React Context API + Redux Toolkit
-- **Navigation**: React Navigation v6
-- **UI/UX**: NativeWind + Tailwind CSS
-- **Data Visualization**: React Native Chart Kit & D3.js
-- **Form Handling**: React Hook Form with Yup validation
-- **Testing**: Jest & React Native Testing Library
+```bash
+cd frontend
+npm start
+```
 
-### Backend
-- **Runtime**: Node.js 18+ with Express 4.x
-- **Database**: MongoDB 6.0+ with Mongoose 7.x
-- **Authentication**: JWT with refresh tokens
-- **API**: RESTful + GraphQL (Apollo Server)
-- **Security**: Helmet, CORS, rate limiting, CSRF protection
-- **Infrastructure**: Docker, AWS ECS, MongoDB Atlas
-- **CI/CD**: GitHub Actions, AWS CodePipeline
+### Test Credentials
+- **Email:** test@example.com
+- **Password:** password123
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-- Node.js 18.x or later
-- npm 9.x or yarn 1.22.x
-- MongoDB 6.0+ (local or Atlas)
-- Expo CLI for mobile development
-- Xcode (for iOS development)
-- Android Studio (for Android development)
+## 📚 Documentation
 
-### Installation
+- **[Quick Start Guide](QUICK-START.md)** - Get started in 2 steps
+- **[Render Deployment](RENDER-DEPLOYMENT.md)** - Backend deployment info
+- **[Application Status](APPLICATION-STATUS.md)** - Complete system status
+- **[Startup Checklist](STARTUP-CHECKLIST.md)** - Detailed setup guide
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/budget-tracker.git
-   cd budget-tracker
-   ```
+---
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Update .env with your configuration
-   npm install
-   npm run dev
-   ```
+## 🌐 Important URLs
 
-3. **Frontend Setup**
-   ```bash
-   cd ../frontend
-   cp .env.example .env
-   # Update .env with your backend API URL
-   npm install
-   npx expo start
-   ```
+| Service | URL |
+|---------|-----|
+| Backend (Render) | https://budget-tracker-react-native-kjff.onrender.com |
+| API Base | https://budget-tracker-react-native-kjff.onrender.com/api |
+| Health Check | https://budget-tracker-react-native-kjff.onrender.com/health |
+| Render Dashboard | https://dashboard.render.com |
+
+---
+
+## 🏗️ Architecture
+
+### Backend (Node.js + Express)
+- **Hosting:** Render (Free Tier)
+- **Database:** MongoDB Atlas
+- **Authentication:** JWT + Refresh Tokens
+- **Security:** Helmet, CORS, Rate Limiting
+- **Email:** Nodemailer (Gmail)
+
+### Frontend (React Native + Expo)
+- **Platform:** iOS, Android, Web
+- **State Management:** React Hooks
+- **Navigation:** React Navigation
+- **Styling:** NativeWind (Tailwind CSS)
+- **API Client:** Axios
+
+---
+
+## 📦 Features
+
+### ✅ Implemented
+- User authentication (register, login, logout)
+- JWT token management with refresh tokens
+- Password reset with OTP
+- User profile management
+- Profile picture upload
+- Transaction management (CRUD)
+- Category management
+- Budget tracking
+- Analytics and reports
+- Friend system
+- Split expenses
+- Settlement tracking
+- Group expenses
+- Audit logging
+- Email notifications
+
+### 🔐 Security
+- Password hashing (bcrypt)
+- JWT authentication
+- Refresh token rotation
+- Rate limiting
+- CORS protection
+- Input validation
+- XSS protection
+- Account locking
+- 2FA support
+
+---
 
 ## 🧪 Testing
 
-Run the test suite:
+### Test Render Backend
 ```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd ../frontend
-npm test
+node test-render-backend.js
 ```
 
+### Test Database
+```bash
+cd backend
+node test-mongodb-connection.js
+```
+
+### Test Application
+```bash
+cd backend
+node test-application.js
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- JWT (jsonwebtoken)
+- Bcrypt
+- Nodemailer
+- Multer + Sharp (image processing)
+- Helmet (security)
+- CORS
+- Express Rate Limit
+
+### Frontend
+- React Native
+- Expo
+- React Navigation
+- Axios
+- NativeWind
+- React Hook Form
+- Date-fns
+- Chart Kit
+
+---
+
+## 📱 Running Frontend
+
+### Web
+```bash
+cd frontend
+npm start
+# Press 'w' for web
+```
+
+### Mobile (Android)
+```bash
+cd frontend
+npx expo start --android
+```
+
+### Mobile (iOS)
+```bash
+cd frontend
+npx expo start --ios
+```
+
+---
+
+## 🔧 Development
+
+### Run Backend Locally (Optional)
+If you want to develop backend locally:
+
+```bash
+cd backend
+npm run dev
+```
+
+Then update `frontend/.env`:
+```
+API_URL=http://localhost:3000/api
+```
+
+**Remember to change back to Render URL when done!**
+
+---
+
+## 📊 Database
+
+### MongoDB Atlas
+- **Status:** ✅ Connected
+- **Collections:** 7
+  - users (1 document)
+  - categories (96 documents)
+  - transactions
+  - settlements
+  - groups
+  - friendships
+  - auditlogs
+
+---
+
+## 🌍 Environment Variables
+
+### Backend (Render)
+Already configured on Render dashboard:
+- `NODE_ENV`
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+- `EMAIL_USER`
+- `EMAIL_PASS`
+- `FRONTEND_URL`
+
+### Frontend
+File: `frontend/.env`
+```env
+API_URL=https://budget-tracker-react-native-kjff.onrender.com/api
+```
+
+---
+
+## 📝 API Endpoints
+
+### Public
+- `POST /api/auth/register` - Register
+- `POST /api/auth/login` - Login
+- `POST /api/auth/forgot-password` - Password reset
+- `POST /api/auth/send-otp` - Send OTP
+- `POST /api/auth/verify-otp` - Verify OTP
+
+### Protected (Require Authentication)
+- `GET /api/user/profile` - Get profile
+- `PUT /api/user/profile` - Update profile
+- `GET /api/transactions` - Get transactions
+- `POST /api/transactions` - Create transaction
+- `GET /api/categories` - Get categories
+- `GET /api/budgets` - Get budgets
+- `GET /api/analytics/*` - Analytics
+- And many more...
+
+---
+
+## 🎯 Project Structure
+
+```
+.
+├── backend/                 # Backend (deployed on Render)
+│   ├── models/             # Mongoose models
+│   ├── routes/             # API routes
+│   ├── middleware/         # Custom middleware
+│   ├── services/           # Business logic
+│   ├── config/             # Configuration
+│   ├── utils/              # Utilities
+│   └── server.js           # Entry point
+│
+├── frontend/               # React Native app
+│   ├── app/               # App screens
+│   ├── assets/            # Images, fonts
+│   └── App.tsx            # Entry point
+│
+└── docs/                  # Documentation
+    ├── QUICK-START.md
+    ├── RENDER-DEPLOYMENT.md
+    └── APPLICATION-STATUS.md
+```
+
+---
+
 ## 🤝 Contributing
 
-Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+This project is private and proprietary.
 
-## 📬 Contact
+---
 
-[Your Name] - [@yourtwitter](https://twitter.com/yourtwitter) - your.email@example.com
+## 👨‍💻 Author
 
-Project Link: [https://github.com/yourusername/budget-tracker](https://github.com/yourusername/budget-tracker)
+**Bhargav**
 
-## 🙏 Acknowledgments
+---
 
-- [Expo](https://expo.dev/) for the amazing development experience
-- [React Native](https://reactnative.dev/) for cross-platform development
-- [MongoDB](https://www.mongodb.com/) for flexible data storage
-- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling
-- All contributors who have helped shape this project
-- RESTful API design
+## 🎉 Ready to Use!
 
-## 🚀 Getting Started
+Your application is fully deployed and operational:
 
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-- MongoDB (local or Atlas)
-- Expo CLI (for mobile development)
+✅ Backend live on Render  
+✅ Database connected  
+✅ Frontend ready to start  
+✅ All features working  
 
-### Installation
+**Start now:** `cd frontend && npm start`
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/budget-tracker.git
-   cd budget-tracker
-   ```
+---
 
-2. **Set up the Backend**
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env
-   # Update .env with your configuration
-   npm run dev
-   ```
-
-3. **Set up the Frontend**
-   ```bash
-   cd ../frontend
-   npm install
-   cp .env.example .env
-   # Update .env with your backend API URL
-   npm start
-   ```
-
-## 📱 Running the App
-
-### Development
-- Start the backend: `cd backend && npm run dev`
-- Start the frontend: `cd frontend && npm start`
-- Use Expo Go app on your mobile device or an emulator to test
-
-### Production
-- Build the app: `cd frontend && expo build:android` or `expo build:ios`
-- Deploy the backend to your preferred hosting service
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📬 Contact
-
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter) - your.email@example.com
-
-Project Link: [https://github.com/your-username/budget-tracker](https://github.com/your-username/budget-tracker)
-
-## 🙏 Acknowledgments
-
-- [Expo](https://expo.dev/)
-- [React Native](https://reactnative.dev/)
-- [MongoDB](https://www.mongodb.com/)
-- [Node.js](https://nodejs.org/)
+**Last Updated:** December 7, 2025

@@ -86,7 +86,7 @@ const GroupDetailScreen = ({ route, navigation }: any) => {
             </TouchableOpacity>
           </View>
           {group.balances.map((balance) => (
-            <View key={balance.user._id} style={styles.balanceRow}>
+            <View key={balance.user.id} style={styles.balanceRow}>
               <Text style={styles.balanceName}>{balance.user.name}</Text>
               <Text style={[
                 styles.balanceAmount,
@@ -101,7 +101,7 @@ const GroupDetailScreen = ({ route, navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Expenses</Text>
           {expenses.map((expense) => (
-            <TouchableOpacity key={expense._id} style={styles.expenseCard}>
+            <TouchableOpacity key={expense.id} style={styles.expenseCard}>
               <View style={styles.expenseInfo}>
                 <Text style={styles.expenseCategory}>{expense.category}</Text>
                 <Text style={styles.expenseDescription}>{expense.description || 'No description'}</Text>

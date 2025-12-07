@@ -452,7 +452,7 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
               {splitType === "percentage" && (
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={styles.splitInput}
                     value={participantShares[index]?.percentage?.toString() || ""}
                     onChangeText={(value) =>
                       updateParticipantShare(index, value, "percentage")
@@ -471,7 +471,7 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputPrefix}>₹</Text>
                   <TextInput
-                    style={styles.input}
+                    style={styles.splitInput}
                     value={participantShares[index]?.share?.toString() || ""}
                     onChangeText={(value) =>
                       updateParticipantShare(index, value, "share")
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  input: {
+  splitInput: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 6,

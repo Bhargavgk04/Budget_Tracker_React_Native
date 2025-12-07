@@ -27,6 +27,7 @@ interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
   innerContainerStyle?: ViewStyle;
   inputStyle?: TextStyle;
   labelStyle?: TextStyle;
+  labelProps?: any;
 }
 
 const TextInput = forwardRef<RNTextInput, TextInputProps>(
@@ -39,8 +40,10 @@ const TextInput = forwardRef<RNTextInput, TextInputProps>(
       leftIcon,
       rightIcon,
       containerStyle,
+      innerContainerStyle,
       inputStyle,
       labelStyle,
+      labelProps,
       onFocus,
       onBlur,
       ...props

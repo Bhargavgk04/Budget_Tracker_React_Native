@@ -616,7 +616,7 @@ const AddTransactionScreen = ({
               
               {/* Quick Category Selection removed per user request */}
               {category ? null : (
-                {/* Broken JSX removed */}
+                <View>
                   <Text style={[styles.subSectionTitle, { color: theme.colors.textSecondary }]}>
                     Quick Select
                   </Text>

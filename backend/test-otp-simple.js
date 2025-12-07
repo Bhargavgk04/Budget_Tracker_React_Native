@@ -35,8 +35,18 @@ async function testOTPFunctionality() {
     
     // Test 2: Verify OTP
     console.log('\n🔍 Test 2: Verifying OTP...');
-    const isValid = testUser.verifyPasswordChangeOTP(otp);
-    console.log(`✅ OTP verification: ${isValid ? 'VALID' : 'INVALID'}`);
+    const verificationResult = testUser.verifyPasswordChangeOTP(otp);
+    console.log(`✅ OTP verification: ${verificationResult.valid ? 'VALID' : 'INVALID'}`);
+    if (!verificationResult.valid && verificationResult.error) {
+      console.log(`   Error: ${verificationResult.error}`);
+    }
+    await testUser.save();
+    
+    // Regenerate OTP for remaining tests (since verification clears it)
+    console.log('\n🔄 Regenerating OTP for remaining tests...');
+    const newOtp = testUser.generatePasswordChangeOTP();
+    await testUser.save();
+    console.log(`✅ New OTP generated: ${newOtp}`);
     
     // Test 3: Check if OTP is expired
     console.log('\n⏰ Test 3: Checking OTP expiration...');

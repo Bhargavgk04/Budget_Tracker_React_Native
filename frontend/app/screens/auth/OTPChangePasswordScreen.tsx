@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInput as RNTextInput,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,7 +17,7 @@ import Button from '@/components/common/Button';
 import TextInput from '@/components/common/TextInput';
 import { withPerformanceTracking } from '@/utils/performance';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/utils/constants';
-import { API } from '@/config/api.config';
+import API from '@/config/api.config';
 
 interface OTPChangePasswordScreenProps {
   route?: {
@@ -31,7 +31,7 @@ interface OTPChangePasswordScreenProps {
 const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { startTiming, endTiming } = usePerformance();
+  const { trackScreenLoad, trackAnimation, trackCustom } = usePerformance('OTPChangePasswordScreen');
 
   const [email, setEmail] = useState(route?.params?.email || user?.email || '');
   const [otp, setOTP] = useState(['', '', '', '', '', '']);
@@ -44,9 +44,9 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    startTiming('otp_change_password_screen');
-    return () => endTiming('otp_change_password_screen');
-  }, [startTiming, endTiming]);
+    const endTracking = trackScreenLoad('otp_change_password_screen');
+    return () => endTracking();
+  }, [trackScreenLoad]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -229,10 +229,10 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ flex: 1, padding: 20, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 10 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.onSurface, marginBottom: 10 }}>
             Change Password
           </Text>
-          <Text style={{ fontSize: 16, color: colors.gray, marginBottom: 30 }}>
+          <Text style={{ fontSize: 16, color: colors.onSurfaceVariant, marginBottom: 30 }}>
             Enter the OTP sent to your email and your new password
           </Text>
 
@@ -260,12 +260,12 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
           )}
 
           {/* OTP Input */}
-          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 10 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.onSurface, marginBottom: 10 }}>
             Enter 6-digit OTP
           </Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
             {otp.map((digit, index) => (
-              <TextInput
+              <RNTextInput
                 key={index}
                 value={digit}
                 onChangeText={(value) => handleOTPChange(value.slice(-1), index)}
@@ -282,7 +282,7 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
                   borderRadius: 8,
                   fontSize: 20,
                   fontWeight: 'bold',
-                  color: colors.text,
+                  color: colors.onSurface,
                 }}
               />
             ))}
@@ -299,7 +299,7 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
               onPress={handleResendOTP}
               disabled={countdown > 0 || isResending}
             >
-              <Text style={{ color: countdown > 0 ? colors.gray : colors.primary }}>
+              <Text style={{ color: countdown > 0 ? colors.onSurfaceVariant : colors.primary }}>
                 {isResending ? (
                   'Resending...'
                 ) : countdown > 0 ? (
@@ -357,4 +357,4 @@ const OTPChangePasswordScreen = ({ route }: OTPChangePasswordScreenProps) => {
   );
 };
 
-export default withPerformanceTracking(OTPChangePasswordScreen);
+export default withPerformanceTracking(OTPChangePasswordScreen, 'OTPChangePasswordScreen');

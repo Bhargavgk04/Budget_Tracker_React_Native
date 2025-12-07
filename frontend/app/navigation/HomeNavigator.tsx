@@ -17,8 +17,8 @@ export default function HomeNavigator() {
         options={screenTransitions.Dashboard}
       />
       <Stack.Screen 
-        name="TransactionDetails" 
-        component={TransactionDetailsScreen}
+        name="TransactionDetails"
+        component={(props) => <TransactionDetailsScreen {...props} />}
         options={screenTransitions.TransactionDetails}
       />
       <Stack.Screen 

@@ -388,7 +388,6 @@ return this.passwordChangeOTPAttempts >= 3;
 // Method to increment OTP attempts
 userSchema.methods.incrementPasswordChangeOTPAttempts = function() {
 this.passwordChangeOTPAttempts += 1;
-return this.save();
 };
 
 // Method to clear OTP fields
