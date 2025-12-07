@@ -161,8 +161,6 @@ export type RootStackParamList = {
   Main: undefined;
   Login: undefined;
   Signup: undefined;
-  ForgotPassword: undefined;
-  OTPVerification: { email: string };
 };
 
 export type MainTabParamList = {

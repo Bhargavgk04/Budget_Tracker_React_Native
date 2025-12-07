@@ -56,9 +56,7 @@ function LoginScreen({ navigation }: any) {
     navigation.navigate('Signup');
   };
 
-  const navigateToForgotPassword = () => {
-    navigation.navigate('ForgotPassword');
-  };
+
 
   const handleDemoLogin = async () => {
     try {
@@ -120,16 +118,7 @@ function LoginScreen({ navigation }: any) {
     formContainer: {
       marginBottom: theme.spacing.lg,
     },
-    forgotPasswordContainer: {
-      alignItems: 'flex-end',
-      marginBottom: theme.spacing.xl,
-      marginTop: -theme.spacing.sm,
-    },
-    forgotPasswordText: {
-      ...theme.typography.body2,
-      color: theme.colors.primary,
-      fontWeight: '600',
-    },
+
     loginButton: {
       marginBottom: theme.spacing.md,
     },
@@ -293,10 +282,6 @@ function LoginScreen({ navigation }: any) {
                   />
                 )}
               />
-
-              <TouchableOpacity style={styles.forgotPasswordContainer} onPress={navigateToForgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
 
               <Button
                 title="Sign In"

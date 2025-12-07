@@ -122,22 +122,7 @@ const userSchema = new mongoose.Schema({
       required: true
     }
   }],
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  // OTP fields for password reset (forgot password flow)
-  passwordResetOTP: String,
-  passwordResetOTPExpires: Date,
-  passwordResetOTPAttempts: {
-    type: Number,
-    default: 0
-  },
-  // OTP fields for password change (logged in user)
-  passwordChangeOTP: String,
-  passwordChangeOTPExpires: Date,
-  passwordChangeOTPAttempts: {
-    type: Number,
-    default: 0
-  },
+
   emailVerificationToken: String,
   emailVerified: {
     type: Boolean,
@@ -257,22 +242,7 @@ userSchema.methods.generateRefreshToken = function(rememberMe = false, deviceInf
   return refreshToken;
 };
 
-// Method to generate password reset token
-userSchema.methods.getResetPasswordToken = function() {
-  // Generate token
-  const resetToken = require('crypto').randomBytes(20).toString('hex');
 
-  // Hash token and set to resetPasswordToken field
-  this.passwordResetToken = require('crypto')
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
-
-  // Set expire
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  return resetToken;
-};
 
 // Method to handle failed login attempts
 userSchema.methods.incLoginAttempts = function() {
@@ -344,65 +314,7 @@ userSchema.methods.verifyBackupCode = function(code) {
   return false;
 };
 
-// Method to generate and store OTP for password change
-userSchema.methods.generatePasswordChangeOTP = function() {
-  const crypto = require('crypto');
-  const otp = crypto.randomInt(100000, 999999).toString();
-  
-  this.passwordChangeOTP = otp;
-  this.passwordChangeOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  this.passwordChangeOTPAttempts = 0;
-  
-  return otp;
-};
 
-// Method to verify password change OTP
-userSchema.methods.verifyPasswordChangeOTP = function(enteredOTP) {
-  // Check if OTP has expired
-  if (!this.passwordChangeOTPExpires || this.passwordChangeOTPExpires < Date.now()) {
-    return { valid: false, error: 'OTP has expired' };
-  }
-  
-  // Check if too many attempts
-  if (this.passwordChangeOTPAttempts >= 3) {
-    return { valid: false, error: 'Too many attempts. Please request a new OTP' };
-  }
-  
-  // Verify OTP
-  if (this.passwordChangeOTP === enteredOTP) {
-    // Clear OTP after successful verification
-    this.passwordChangeOTP = undefined;
-    this.passwordChangeOTPExpires = undefined;
-    this.passwordChangeOTPAttempts = 0;
-    return { valid: true };
-  }
-  
-  // Increment attempts
-  this.passwordChangeOTPAttempts += 1;
-  return { valid: false, error: 'Invalid OTP' };
-};
-
-// Method to check if password change OTP has expired
-userSchema.methods.isPasswordChangeOTPExpired = function() {
-return !this.passwordChangeOTPExpires || this.passwordChangeOTPExpires < Date.now();
-};
-
-// Method to check if password change OTP attempts exceeded
-userSchema.methods.isPasswordChangeOTPAttemptsExceeded = function() {
-return this.passwordChangeOTPAttempts >= 3;
-};
-
-// Method to increment OTP attempts
-userSchema.methods.incrementPasswordChangeOTPAttempts = function() {
-this.passwordChangeOTPAttempts += 1;
-};
-
-// Method to clear OTP fields
-userSchema.methods.clearPasswordChangeOTP = function() {
-this.passwordChangeOTP = undefined;
-this.passwordChangeOTPExpires = undefined;
-this.passwordChangeOTPAttempts = 0;
-};
 
 // Static method to clean up expired refresh tokens
 userSchema.statics.cleanupExpiredTokens = function() {

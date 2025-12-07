@@ -104,9 +104,6 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  verifyOTP: (email: string, otp: string) => Promise<void>;
-  resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   refreshAuthToken: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
@@ -342,50 +339,7 @@ class AuthService {
     'register'
   );
 
-  static forgotPassword = withPerformanceMonitoring(
-    async (email: string): Promise<void> => {
-      performanceMonitor.startApiCall('forgot-password');
-      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.SEND_OTP, {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send OTP');
-      }
-    },
-    'forgot-password'
-  );
-
-  static verifyOTP = withPerformanceMonitoring(
-    async (email: string, otp: string): Promise<void> => {
-      performanceMonitor.startApiCall('verify-otp');
-      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.VERIFY_OTP, {
-        method: 'POST',
-        body: JSON.stringify({ email, otp }),
-      });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Invalid OTP');
-      }
-    },
-    'verify-otp'
-  );
-
-  static resetPassword = withPerformanceMonitoring(
-    async (email: string, otp: string, newPassword: string): Promise<void> => {
-      performanceMonitor.startApiCall('reset-password');
-      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
-        method: 'POST',
-        body: JSON.stringify({ email, otp, newPassword }),
-      });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to reset password');
-      }
-    },
-    'reset-password'
-  );
 
   static refreshToken = withPerformanceMonitoring(
     async (refreshToken: string): Promise<{ token: string; refreshToken: string }> => {
@@ -556,29 +510,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const forgotPassword = async (email: string): Promise<void> => {
-    try {
-      await AuthService.forgotPassword(email);
-    } catch (error) {
-      throw error;
-    }
-  };
 
-  const verifyOTP = async (email: string, otp: string): Promise<void> => {
-    try {
-      await AuthService.verifyOTP(email, otp);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const resetPassword = async (email: string, otp: string, newPassword: string): Promise<void> => {
-    try {
-      await AuthService.resetPassword(email, otp, newPassword);
-    } catch (error) {
-      throw error;
-    }
-  };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
@@ -716,9 +648,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
-    forgotPassword,
-    verifyOTP,
-    resetPassword,
     changePassword,
     refreshAuthToken,
     updateProfile,
