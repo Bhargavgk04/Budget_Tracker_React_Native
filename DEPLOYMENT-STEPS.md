@@ -160,4 +160,161 @@ AUTH: {
 │  User Tests Forgot Password          │
 │                                      │
 │  1. Enter email                      │
-│     ↓                              
+│     ↓                                │
+│  2. Receive OTP (123456)             │
+│     ↓                                │
+│  3. Enter OTP                        │
+│     ↓                                │
+│  4. Set new password                 │
+│     ↓                                │
+│  5. ✅ Success!                      │
+└──────────────────────────────────────┘
+```
+
+## 📊 Timeline
+
+```
+Time    Action                          Status
+─────────────────────────────────────────────────
+00:00   Run deploy script               ⏳ Starting
+00:01   Git push completes              ✅ Done
+00:02   Render detects changes          ✅ Done
+00:03   Build starts                    ⏳ Building
+01:00   Build completes                 ✅ Done
+01:30   Service starting                ⏳ Starting
+02:00   Service ready                   ✅ Done
+02:30   Run wake-backend.js             ⏳ Waking
+03:00   Backend awake                   ✅ Done
+03:30   Run test-complete-flow.js       ⏳ Testing
+04:00   All tests pass                  ✅ Done
+─────────────────────────────────────────────────
+Total: ~4 minutes from deploy to working
+```
+
+## 🎬 Command Sequence
+
+Copy and paste these commands one by one:
+
+```bash
+# 1. Deploy (choose one)
+.\deploy-fix.ps1              # PowerShell
+# OR
+deploy-fix.bat                # Command Prompt
+
+# 2. Wait 3 minutes ☕
+# Go to https://dashboard.render.com/ and watch logs
+
+# 3. Wake backend
+node wake-backend.js
+
+# 4. Wait 30 seconds
+
+# 5. Test
+node test-complete-flow.js
+
+# 6. If successful, test in app
+cd frontend
+npm start
+```
+
+## ✅ Success Indicators
+
+### During Deployment
+```
+Render Dashboard shows:
+✅ "Building..."
+✅ "Deploying..."
+✅ "Deploy succeeded"
+✅ "Service is live"
+```
+
+### After Wake-Up
+```
+Terminal shows:
+✅ Backend responded in X seconds
+✅ Status: 200 or 401 (not 502!)
+✅ Backend is awake and ready!
+```
+
+### During Test
+```
+Terminal shows:
+✅ OTP sent successfully!
+✅ OTP verified successfully!
+✅ Password reset successful!
+✅ SUCCESS!
+```
+
+## ❌ Failure Indicators
+
+### Deployment Failed
+```
+Render Dashboard shows:
+❌ "Build failed"
+❌ "Deploy failed"
+❌ Red error messages
+
+Solution: Check logs, fix errors, redeploy
+```
+
+### Backend Not Responding
+```
+Terminal shows:
+❌ Status: 502 Bad Gateway
+❌ Cannot connect to server
+
+Solution: Wait longer, check Render status
+```
+
+### Test Failed
+```
+Terminal shows:
+❌ Failed to send OTP
+❌ Invalid OTP
+❌ Password reset failed
+
+Solution: Check backend logs, verify email config
+```
+
+## 🔄 Rollback Plan
+
+If something goes wrong:
+
+```bash
+# 1. Revert changes
+git revert HEAD
+
+# 2. Push revert
+git push origin main
+
+# 3. Wait for Render to redeploy
+
+# 4. Check logs and fix issues
+
+# 5. Try again
+```
+
+## 📞 Support Checklist
+
+Before asking for help, check:
+
+- [ ] Ran `.\deploy-fix.ps1` or `deploy-fix.bat`
+- [ ] Waited 3+ minutes for deployment
+- [ ] Checked Render dashboard for "Deploy succeeded"
+- [ ] Ran `node wake-backend.js` successfully
+- [ ] Waited 30 seconds after wake-up
+- [ ] Ran `node test-complete-flow.js`
+- [ ] Checked email spam folder
+- [ ] Verified EMAIL_USER and EMAIL_PASS in Render
+
+---
+
+## 🎯 Ready? Let's Deploy!
+
+```powershell
+.\deploy-fix.ps1
+```
+
+Then follow the on-screen instructions!
+
+**Good luck! 🚀**
