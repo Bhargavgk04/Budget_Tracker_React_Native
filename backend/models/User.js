@@ -124,7 +124,14 @@ const userSchema = new mongoose.Schema({
   }],
   passwordResetToken: String,
   passwordResetExpires: Date,
-  // OTP fields for password change
+  // OTP fields for password reset (forgot password flow)
+  passwordResetOTP: String,
+  passwordResetOTPExpires: Date,
+  passwordResetOTPAttempts: {
+    type: Number,
+    default: 0
+  },
+  // OTP fields for password change (logged in user)
   passwordChangeOTP: String,
   passwordChangeOTPExpires: Date,
   passwordChangeOTPAttempts: {

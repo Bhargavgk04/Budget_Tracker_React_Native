@@ -345,13 +345,13 @@ class AuthService {
   static forgotPassword = withPerformanceMonitoring(
     async (email: string): Promise<void> => {
       performanceMonitor.startApiCall('forgot-password');
-      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
+      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.SEND_OTP, {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to send reset email');
+        throw new Error(response.error || 'Failed to send OTP');
       }
     },
     'forgot-password'
