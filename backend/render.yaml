@@ -19,5 +19,9 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://budget-tracker-react-native-kjff.onrender.com
+      - key: EMAIL_USER
+        value: thakurkakashi@gmail.com
+      - key: EMAIL_PASS
+        value: xwvg ekaz yvnu vbcl
     healthCheckPath: /health
     autoDeploy: true
