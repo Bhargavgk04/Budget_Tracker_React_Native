@@ -44,23 +44,56 @@ const emailTemplates = {
     `
   }),
 
-  otpVerification: (otp) => ({
-    subject: 'OTP Verification - Budget Tracker',
+  otpVerification: (otp, userName = '') => ({
+    subject: 'Password Change OTP - Budget Tracker',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #6366F1;">Budget Tracker - OTP Verification</h2>
-        <p>Hi there,</p>
-        <p>You requested to reset your password. Use the OTP below to verify your identity:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-          <span style="font-size: 32px; font-weight: bold; color: #6366F1; letter-spacing: 4px;">${otp}</span>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #6366F1; margin: 0; font-size: 28px;">Budget Tracker</h1>
+          <p style="color: #6b7280; margin: 5px 0;">Secure Password Management</p>
         </div>
-        <p>This OTP will expire in <strong>10 minutes</strong>.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-        <p style="color: #6b7280; font-size: 14px;">
-          Budget Tracker App<br>
-          This is an automated message, please do not reply.
-        </p>
+        
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0;">
+          <h2 style="color: white; margin: 0 0 15px 0; font-size: 20px;">Your OTP Code</h2>
+          <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+            <span style="font-size: 36px; font-weight: bold; color: white; letter-spacing: 6px; font-family: 'Courier New', monospace;">${otp}</span>
+          </div>
+        </div>
+        
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #6366F1;">
+          <p style="margin: 0; color: #374151; font-size: 16px;">
+            ${userName ? `Hi ${userName},` : 'Hi there,'}
+          </p>
+          <p style="margin: 10px 0; color: #6b7280; line-height: 1.6;">
+            You requested to change your password. Use the OTP code above to verify your identity. This code will expire in <strong>10 minutes</strong> for your security.
+          </p>
+          <div style="margin: 15px 0;">
+            <ul style="color: #6b7280; margin: 0; padding-left: 20px;">
+              <li>Never share this code with anyone</li>
+              <li>We'll never ask for this code via phone</li>
+              <li>This code can only be used once</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div style="margin: 25px 0; text-align: center;">
+          <p style="color: #6b7280; font-size: 14px; margin: 0;">
+            If you didn't request this password change, please secure your account immediately.
+          </p>
+          <a href="${process.env.FRONTEND_URL}/support" style="color: #6366F1; text-decoration: none; font-weight: 600;">
+            Contact Support →
+          </a>
+        </div>
+        
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            This is an automated message from Budget Tracker.<br>
+            Please do not reply to this email.
+          </p>
+          <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
+            © 2024 Budget Tracker. All rights reserved.
+          </p>
+        </div>
       </div>
     `
   }),
@@ -109,8 +142,8 @@ const sendPasswordResetEmail = async (email, resetToken) => {
 };
 
 // Send OTP email
-const sendOTPEmail = async (email, otp) => {
-  const template = emailTemplates.otpVerification(otp);
+const sendOTPEmail = async (email, otp, userName = '') => {
+  const template = emailTemplates.otpVerification(otp, userName);
   return await sendEmail(email, template);
 };
 

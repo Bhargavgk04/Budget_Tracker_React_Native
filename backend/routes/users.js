@@ -139,6 +139,12 @@ router.delete('/profile/picture', async (req, res, next) => {
 // @access  Private
 router.get('/stats', async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Stats Debug - User stats endpoint reached');
+      console.log('Stats Debug - User ID:', req.user._id);
+      console.log('Stats Debug - User email:', req.user.email);
+    }
+
     // Get user's transactions count
     const transactionCount = await Transaction.countDocuments({ userId: req.user._id });
     
@@ -155,15 +161,22 @@ router.get('/stats', async (req, res, next) => {
       console.log('Budget model not found, setting budget count to 0');
     }
 
+    const statsData = {
+      transactions: transactionCount,
+      categories: categoryCount,
+      budgets: budgetCount
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Stats Debug - Stats calculated:', statsData);
+    }
+
     res.status(200).json({
       success: true,
-      data: {
-        transactions: transactionCount,
-        categories: categoryCount,
-        budgets: budgetCount
-      }
+      data: statsData
     });
   } catch (error) {
+    console.error('Stats endpoint error:', error);
     next(error);
   }
 });

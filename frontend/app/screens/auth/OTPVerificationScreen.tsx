@@ -20,17 +20,17 @@ import { usePerformance } from '@/hooks/usePerformance';
 import { withPerformanceTracking } from '@/utils/performance';
 
 interface OTPVerificationScreenProps {
-  route: {
-    params: {
+  route?: {
+    params?: {
       email: string;
       type: 'forgot_password' | 'signup_verification';
     };
   };
-  navigation: any;
+  navigation?: any;
 }
 
 function OTPVerificationScreen({ route, navigation }: OTPVerificationScreenProps) {
-  const { email, type } = route.params;
+  const { email, type } = route?.params || {};
   const theme = useTheme();
   const { verifyOTP, forgotPassword } = useAuth();
   const { trackCustom } = usePerformance('OTPVerificationScreen');
@@ -98,6 +98,11 @@ function OTPVerificationScreen({ route, navigation }: OTPVerificationScreenProps
       return;
     }
 
+    if (!email || !type) {
+      Alert.alert('Error', 'Missing required parameters. Please try again.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       trackCustom('otp_verification_attempt', { email, type });
@@ -125,6 +130,11 @@ function OTPVerificationScreen({ route, navigation }: OTPVerificationScreenProps
   };
 
   const handleResendOTP = async () => {
+    if (!email || !type) {
+      Alert.alert('Error', 'Missing required parameters. Please try again.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       trackCustom('resend_otp', { email, type });
@@ -291,7 +301,9 @@ function OTPVerificationScreen({ route, navigation }: OTPVerificationScreenProps
               {otp.map((digit, index) => (
                 <RNTextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.otpInput,
                     digit ? styles.otpInputFilled : styles.otpInputEmpty,

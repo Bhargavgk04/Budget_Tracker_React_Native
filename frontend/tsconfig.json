@@ -19,7 +19,8 @@
       "@/services/*": ["./app/services/*"],
       "@/utils/*": ["./app/utils/*"],
       "@/types/*": ["./app/types/*"],
-      "@/contexts/*": ["./app/contexts/*"]
+      "@/contexts/*": ["./app/contexts/*"],
+      "@/hooks/*": ["./app/hooks/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

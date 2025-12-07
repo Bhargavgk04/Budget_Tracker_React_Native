@@ -52,9 +52,8 @@ module.exports = {
   },
   scheme: 'budget-tracker',
   platforms: ['ios', 'android', 'web'],
-  // Development settings for better refresh
-  development: {
-    lazyImports: false,
-    // Disable some performance optimizations for better development experience
+  // Add metro config reference for EAS Build
+  metro: {
+    config: './metro.config.js'
   }
 };

@@ -893,6 +893,218 @@ router.post(
   }
 );
 
+// @desc    Request OTP for password change
+// @route   POST /api/auth/request-password-change-otp
+// @access  Private
+router.post('/request-password-change-otp', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal that user doesn't exist
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with this email exists, an OTP has been sent'
+      });
+    }
+
+    // Generate OTP
+    const otp = user.generatePasswordChangeOTP();
+    await user.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(user.email, otp, user.name);
+    
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send OTP email. Please try again later.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email for password change verification',
+      // In production, don't include these - only for development
+      ...(process.env.NODE_ENV === 'development' && { 
+        otp: otp,
+        expiresIn: '10 minutes'
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Verify OTP and change password
+// @route   POST /api/auth/verify-otp-change-password
+// @access  Public
+router.post('/verify-otp-change-password', async (req, res, next) => {
+  try {
+    const { email, otp, currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!email || !otp || !currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'All fields are required: email, otp, currentPassword, newPassword'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 8 characters long'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email or OTP'
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.matchPassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // Verify OTP
+    const otpVerification = user.verifyPasswordChangeOTP(otp);
+    if (!otpVerification.valid) {
+      await user.save(); // Save the incremented attempts
+      return res.status(400).json({
+        success: false,
+        error: otpVerification.error
+      });
+    }
+
+    // Check if new password is same as current
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be different from current password'
+      });
+    }
+
+    // Get device info for logging
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    // Set new password
+    user.password = newPassword;
+
+    // Clear all refresh tokens (force logout from all devices)
+    user.refreshTokens = [];
+
+    // Clear OTP fields
+    user.clearPasswordChangeOTP();
+
+    await user.save();
+
+    // Send password change notification email
+    const emailSent = await sendPasswordChangeNotification(user.email);
+    if (!emailSent) {
+      console.error('Failed to send password change notification email');
+    }
+
+    // Log password change
+    await AuditLog.logEvent({
+      userId: user._id,
+      eventType: "password_change",
+      ipAddress,
+      userAgent: deviceInfo.userAgent,
+      deviceInfo,
+      success: true,
+      metadata: { method: 'otp_verification' }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully. Please log in with your new password.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Resend OTP for password change
+// @route   POST /api/auth/resend-password-change-otp
+// @access  Public
+router.post('/resend-password-change-otp', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal that user doesn't exist
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with this email exists, an OTP has been sent'
+      });
+    }
+
+    // Check if there's an existing OTP that hasn't expired
+    if (user.passwordChangeOTP && user.passwordChangeOTPExpires > Date.now()) {
+      const timeRemaining = Math.ceil((user.passwordChangeOTPExpires - Date.now()) / 1000 / 60);
+      return res.status(400).json({
+        success: false,
+        error: `Please wait ${timeRemaining} minutes before requesting a new OTP`
+      });
+    }
+
+    // Generate new OTP
+    const otp = user.generatePasswordChangeOTP();
+    await user.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(user.email, otp, user.name);
+    
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send OTP email. Please try again later.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'New OTP sent to your email',
+      ...(process.env.NODE_ENV === 'development' && { 
+        otp: otp,
+        expiresIn: '10 minutes'
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Test email sending
 // @route   GET /api/auth/test-email
 // @access  Public

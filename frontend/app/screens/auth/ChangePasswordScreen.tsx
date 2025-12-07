@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -43,11 +44,12 @@ interface ChangePasswordFormData {
 
 function ChangePasswordScreen({ navigation }: any) {
   const theme = useTheme();
-  const { changePassword } = useAuth();
+  const { changePassword, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [useOTP, setUseOTP] = useState(false);
 
   const {
     control,
@@ -94,6 +96,10 @@ function ChangePasswordScreen({ navigation }: any) {
     }
   };
 
+  const handleOTPChangePassword = () => {
+    navigation.navigate('OTPChangePassword', { email: user?.email });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
@@ -109,108 +115,184 @@ function ChangePasswordScreen({ navigation }: any) {
               Change Password
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              Enter your current and new password
+              Choose how you want to change your password
             </Text>
           </View>
 
           <View style={styles.form}>
-            {/* Current Password */}
-            <Controller
-              control={control}
-              name="currentPassword"
-              rules={PASSWORD_VALIDATION}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="Current Password"
-                  placeholder="Enter your current password"
-                  secureTextEntry={!showCurrentPassword}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.currentPassword?.message}
-                  rightIcon={
-                    <MaterialIcons
-                      name={showCurrentPassword ? 'visibility-off' : 'visibility'}
-                      size={24}
-                      color={theme.colors.textSecondary}
-                      onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                    />
-                  }
+            {/* Method Selection */}
+            <View style={styles.methodSelection}>
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  !useOTP && { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }
+                ]}
+                onPress={() => setUseOTP(false)}
+              >
+                <MaterialIcons
+                  name="lock"
+                  size={24}
+                  color={!useOTP ? theme.colors.primary : theme.colors.textSecondary}
                 />
-              )}
-            />
+                <View style={styles.methodContent}>
+                  <Text style={[styles.methodTitle, { color: theme.colors.textPrimary }]}>
+                    Current Password
+                  </Text>
+                  <Text style={[styles.methodDescription, { color: theme.colors.textSecondary }]}>
+                    Use your current password to change it
+                  </Text>
+                </View>
+                {!useOTP && (
+                  <MaterialIcons name="check-circle" size={20} color={theme.colors.primary} />
+                )}
+              </TouchableOpacity>
 
-            {/* New Password */}
-            <Controller
-              control={control}
-              name="newPassword"
-              rules={PASSWORD_VALIDATION}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="New Password"
-                  placeholder="Enter new password"
-                  secureTextEntry={!showNewPassword}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.newPassword?.message}
-                  rightIcon={
-                    <MaterialIcons
-                      name={showNewPassword ? 'visibility-off' : 'visibility'}
-                      size={24}
-                      color={theme.colors.textSecondary}
-                      onPress={() => setShowNewPassword(!showNewPassword)}
-                    />
-                  }
-                  containerStyle={{ marginTop: 16 }}
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  useOTP && { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }
+                ]}
+                onPress={() => setUseOTP(true)}
+              >
+                <MaterialIcons
+                  name="email"
+                  size={24}
+                  color={useOTP ? theme.colors.primary : theme.colors.textSecondary}
                 />
-              )}
-            />
+                <View style={styles.methodContent}>
+                  <Text style={[styles.methodTitle, { color: theme.colors.textPrimary }]}>
+                    Email OTP
+                  </Text>
+                  <Text style={[styles.methodDescription, { color: theme.colors.textSecondary }]}>
+                    Use OTP sent to your email for verification
+                  </Text>
+                </View>
+                {useOTP && (
+                  <MaterialIcons name="check-circle" size={20} color={theme.colors.primary} />
+                )}
+              </TouchableOpacity>
+            </View>
 
-            {/* Confirm New Password */}
-            <Controller
-              control={control}
-              name="confirmPassword"
-              rules={{
-                ...PASSWORD_VALIDATION,
-                validate: (value: string) =>
-                  value === newPassword || 'Passwords do not match',
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="Confirm New Password"
-                  placeholder="Confirm your new password"
-                  secureTextEntry={!showConfirmPassword}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.confirmPassword?.message}
-                  rightIcon={
-                    <MaterialIcons
-                      name={
-                        showConfirmPassword ? 'visibility-off' : 'visibility'
+            {!useOTP ? (
+              <>
+                {/* Current Password */}
+                <Controller
+                  control={control}
+                  name="currentPassword"
+                  rules={PASSWORD_VALIDATION}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Current Password"
+                      placeholder="Enter your current password"
+                      secureTextEntry={!showCurrentPassword}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.currentPassword?.message}
+                      rightIcon={
+                        <MaterialIcons
+                          name={showCurrentPassword ? 'visibility-off' : 'visibility'}
+                          size={24}
+                          color={theme.colors.textSecondary}
+                          onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                        />
                       }
-                      size={24}
-                      color={theme.colors.textSecondary}
-                      onPress={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      containerStyle={{ marginTop: 24 }}
                     />
-                  }
-                  containerStyle={{ marginTop: 16 }}
+                  )}
                 />
-              )}
-            />
 
-            <Button
-              title="Update Password"
-              onPress={handleSubmit(onSubmit)}
-              loading={isLoading}
-              style={{ marginTop: 32 }}
-            />
+                {/* New Password */}
+                <Controller
+                  control={control}
+                  name="newPassword"
+                  rules={PASSWORD_VALIDATION}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="New Password"
+                      placeholder="Enter new password"
+                      secureTextEntry={!showNewPassword}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.newPassword?.message}
+                      rightIcon={
+                        <MaterialIcons
+                          name={showNewPassword ? 'visibility-off' : 'visibility'}
+                          size={24}
+                          color={theme.colors.textSecondary}
+                          onPress={() => setShowNewPassword(!showNewPassword)}
+                        />
+                      }
+                      containerStyle={{ marginTop: 16 }}
+                    />
+                  )}
+                />
+
+                {/* Confirm New Password */}
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  rules={{
+                    ...PASSWORD_VALIDATION,
+                    validate: (value: string) =>
+                      value === newPassword || 'Passwords do not match',
+                  }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Confirm New Password"
+                      placeholder="Confirm your new password"
+                      secureTextEntry={!showConfirmPassword}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.confirmPassword?.message}
+                      rightIcon={
+                        <MaterialIcons
+                          name={
+                            showConfirmPassword ? 'visibility-off' : 'visibility'
+                          }
+                          size={24}
+                          color={theme.colors.textSecondary}
+                          onPress={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                        />
+                      }
+                      containerStyle={{ marginTop: 16 }}
+                    />
+                  )}
+                />
+
+                <Button
+                  title="Update Password"
+                  onPress={handleSubmit(onSubmit)}
+                  loading={isLoading}
+                  style={{ marginTop: 32 }}
+                />
+              </>
+            ) : (
+              <View style={styles.otpSection}>
+                <View style={[styles.otpInfo, { backgroundColor: theme.colors.background + '80' }]}>
+                  <MaterialIcons name="info" size={24} color={theme.colors.primary} />
+                  <Text style={[styles.otpInfoText, { color: theme.colors.textSecondary }]}>
+                    We'll send a 6-digit OTP to your email address ({user?.email}) for password change verification.
+                  </Text>
+                </View>
+                
+                <Button
+                  title="Continue with OTP"
+                  onPress={handleOTPChangePassword}
+                  style={{ marginTop: 24 }}
+                />
+              </View>
+            )}
 
             <Text style={[styles.note, { color: theme.colors.textSecondary }]}>
-              Make sure your new password is strong and different from your previous passwords.
+              {useOTP 
+                ? 'OTP verification provides an extra layer of security for your password change.'
+                : 'Make sure your new password is strong and different from your previous passwords.'
+              }
             </Text>
           </View>
         </ScrollView>
@@ -246,6 +328,46 @@ const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
+  },
+  methodSelection: {
+    marginBottom: 24,
+  },
+  methodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  methodContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  methodTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  methodDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  otpSection: {
+    marginTop: 24,
+  },
+  otpInfo: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'flex-start',
+  },
+  otpInfoText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    lineHeight: 20,
   },
   note: {
     fontSize: 12,

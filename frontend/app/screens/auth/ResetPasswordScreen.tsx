@@ -27,17 +27,17 @@ interface ResetPasswordFormData {
 }
 
 interface ResetPasswordScreenProps {
-  route: {
-    params: {
+  route?: {
+    params?: {
       email: string;
       otp: string;
     };
   };
-  navigation: any;
+  navigation?: any;
 }
 
 function ResetPasswordScreen({ route, navigation }: ResetPasswordScreenProps) {
-  const { email, otp } = route.params;
+  const { email, otp } = route?.params || {};
   const theme = useTheme();
   const { resetPassword } = useAuth();
   const { trackCustom } = usePerformance('ResetPasswordScreen');
@@ -61,6 +61,11 @@ function ResetPasswordScreen({ route, navigation }: ResetPasswordScreenProps) {
   const watchedNewPassword = watch('newPassword');
 
   const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!email || !otp) {
+      Alert.alert('Error', 'Missing required parameters. Please try again.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       trackCustom('reset_password_attempt', { email });
