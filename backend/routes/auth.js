@@ -680,13 +680,16 @@ router.post("/verify-reset-otp", async (req, res, next) => {
       });
     }
 
+    // Save user to persist any changes (like attempt counter reset)
+    await user.save();
+
     // OTP is valid - generate a temporary token for password reset
     const resetToken = jwt.sign(
       { 
         id: user._id, 
         email: user.email,
         purpose: 'password_reset',
-        otp: otp // Include OTP in token for final verification
+        otp: otp // Include plain OTP in token for final verification
       },
       process.env.JWT_SECRET,
       { expiresIn: '15m' } // 15 minutes to complete password reset
@@ -764,7 +767,7 @@ router.post("/reset-password", async (req, res, next) => {
     }
 
     // Find user
-    const user = await User.findById(decoded.id).select("+password +passwordResetOTP");
+    const user = await User.findById(decoded.id).select("+password +passwordResetOTP +passwordResetOTPExpires");
 
     if (!user) {
       return res.status(404).json({
@@ -773,12 +776,28 @@ router.post("/reset-password", async (req, res, next) => {
       });
     }
 
-    // Final OTP verification (ensure OTP wasn't cleared)
-    const finalVerification = user.verifyPasswordResetOTP(decoded.otp);
-    if (!finalVerification.valid) {
+    // Check if OTP still exists and hasn't expired (don't verify again, just check existence)
+    if (!user.passwordResetOTP || !user.passwordResetOTPExpires) {
       return res.status(400).json({
         success: false,
-        error: "OTP has expired or been used. Please request a new one.",
+        error: "Reset session expired. Please request a new OTP.",
+      });
+    }
+
+    if (Date.now() > user.passwordResetOTPExpires) {
+      return res.status(400).json({
+        success: false,
+        error: "Reset session expired. Please request a new OTP.",
+      });
+    }
+
+    // Verify the OTP in the token matches what we have (hash it first)
+    const crypto = require('crypto');
+    const hashedOTP = crypto.createHash('sha256').update(decoded.otp).digest('hex');
+    if (hashedOTP !== user.passwordResetOTP) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid reset session. Please request a new OTP.",
       });
     }
 
