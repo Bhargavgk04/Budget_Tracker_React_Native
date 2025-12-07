@@ -157,6 +157,15 @@ function LoginScreen({ navigation }: any) {
       fontWeight: '700',
       marginLeft: theme.spacing.xs,
     },
+    forgotPasswordContainer: {
+      alignSelf: 'flex-end',
+      marginBottom: theme.spacing.md,
+    },
+    forgotPasswordText: {
+      ...theme.typography.body2,
+      color: theme.colors.primary,
+      fontWeight: '600',
+    },
     decorativeCircle: {
       position: 'absolute',
       borderRadius: 999,
@@ -282,6 +291,13 @@ function LoginScreen({ navigation }: any) {
                   />
                 )}
               />
+
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={() => navigation.navigate('ForgotPassword')}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
 
               <Button
                 title="Sign In"

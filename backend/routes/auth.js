@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const Category = require("../models/Category");
 const AuditLog = require("../models/AuditLog");
+const emailService = require("../services/EmailService");
 const {
   validateRegister,
   validateLogin,
@@ -517,9 +518,10 @@ router.post(
       await user.save();
 
       // Send password change notification email
-      const emailSent = await sendPasswordChangeNotification(user.email);
-      if (!emailSent) {
-        console.error('Failed to send password change notification email');
+      try {
+        await emailService.sendPasswordChangeConfirmation(user.email, user.name);
+      } catch (emailError) {
+        console.error('Failed to send password change notification email:', emailError);
         // Continue with the process even if email fails
       }
 
@@ -542,5 +544,348 @@ router.post(
     }
   }
 );
+
+// @desc    Request password reset OTP
+// @route   POST /api/auth/forgot-password
+// @access  Public
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      console.log(`Password reset requested for non-existent email: ${email}`);
+      return res.status(200).json({
+        success: true,
+        message: "If the email exists, an OTP has been sent",
+      });
+    }
+
+    // Generate OTP
+    const otp = user.generatePasswordResetOTP();
+    await user.save();
+
+    // Send OTP via email
+    try {
+      await emailService.sendPasswordResetOTP(email, otp, user.name);
+      
+      // Log password reset request
+      await AuditLog.logEvent({
+        userId: user._id,
+        eventType: "password_reset_request",
+        ipAddress,
+        userAgent: deviceInfo.userAgent,
+        deviceInfo,
+        success: true,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "OTP has been sent to your email",
+        data: {
+          email: email,
+          expiresIn: 600, // 10 minutes in seconds
+        },
+      });
+    } catch (emailError) {
+      console.error("Failed to send OTP email:", emailError);
+      
+      // Clear OTP if email fails
+      user.passwordResetOTP = undefined;
+      user.passwordResetOTPExpires = undefined;
+      await user.save();
+
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send OTP email. Please try again later.",
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Verify password reset OTP
+// @route   POST /api/auth/verify-reset-otp
+// @access  Public
+router.post("/verify-reset-otp", async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and OTP are required",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Verify OTP
+    const verification = user.verifyPasswordResetOTP(otp);
+    
+    if (!verification.valid) {
+      // Save updated attempt count
+      await user.save();
+      
+      // Log failed verification
+      await AuditLog.logEvent({
+        userId: user._id,
+        eventType: "password_reset_request",
+        ipAddress,
+        userAgent: deviceInfo.userAgent,
+        deviceInfo,
+        success: false,
+        reason: verification.message,
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: verification.message,
+      });
+    }
+
+    // OTP is valid - generate a temporary token for password reset
+    const resetToken = jwt.sign(
+      { 
+        id: user._id, 
+        email: user.email,
+        purpose: 'password_reset',
+        otp: otp // Include OTP in token for final verification
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' } // 15 minutes to complete password reset
+    );
+
+    // Log successful verification
+    await AuditLog.logEvent({
+      userId: user._id,
+      eventType: "password_reset_request",
+      ipAddress,
+      userAgent: deviceInfo.userAgent,
+      deviceInfo,
+      success: true,
+      metadata: { step: 'otp_verified' },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+      data: {
+        resetToken,
+        expiresIn: 900, // 15 minutes in seconds
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Reset password with verified OTP
+// @route   POST /api/auth/reset-password
+// @access  Public (with reset token)
+router.post("/reset-password", async (req, res, next) => {
+  try {
+    const { resetToken, newPassword, confirmPassword } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    if (!resetToken || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "Reset token, new password, and confirmation are required",
+      });
+    }
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "Passwords do not match",
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 8 characters long",
+      });
+    }
+
+    // Verify reset token
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+      
+      if (decoded.purpose !== 'password_reset') {
+        throw new Error('Invalid token purpose');
+      }
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid or expired reset token",
+      });
+    }
+
+    // Find user
+    const user = await User.findById(decoded.id).select("+password +passwordResetOTP");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Final OTP verification (ensure OTP wasn't cleared)
+    const finalVerification = user.verifyPasswordResetOTP(decoded.otp);
+    if (!finalVerification.valid) {
+      return res.status(400).json({
+        success: false,
+        error: "OTP has expired or been used. Please request a new one.",
+      });
+    }
+
+    // Check if new password is same as old password
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must be different from your current password",
+      });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = newPassword;
+    
+    // Clear OTP and reset tokens
+    await user.clearPasswordResetOTP();
+    
+    // Invalidate all refresh tokens for security
+    user.refreshTokens = [];
+    
+    await user.save();
+
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.name);
+    } catch (emailError) {
+      console.error('Failed to send password change confirmation:', emailError);
+      // Continue even if email fails
+    }
+
+    // Log password reset completion
+    await AuditLog.logEvent({
+      userId: user._id,
+      eventType: "password_reset_complete",
+      ipAddress,
+      userAgent: deviceInfo.userAgent,
+      deviceInfo,
+      success: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password has been reset successfully. You can now log in with your new password.",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Resend password reset OTP
+// @route   POST /api/auth/resend-reset-otp
+// @access  Public
+router.post("/resend-reset-otp", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      // Return success to prevent email enumeration
+      return res.status(200).json({
+        success: true,
+        message: "If the email exists, a new OTP has been sent",
+      });
+    }
+
+    // Generate new OTP
+    const otp = user.generatePasswordResetOTP();
+    await user.save();
+
+    // Send OTP via email
+    try {
+      await emailService.sendPasswordResetOTP(email, otp, user.name);
+      
+      // Log OTP resend
+      await AuditLog.logEvent({
+        userId: user._id,
+        eventType: "password_reset_request",
+        ipAddress,
+        userAgent: deviceInfo.userAgent,
+        deviceInfo,
+        success: true,
+        metadata: { action: 'resend_otp' },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "A new OTP has been sent to your email",
+        data: {
+          email: email,
+          expiresIn: 600,
+        },
+      });
+    } catch (emailError) {
+      console.error("Failed to resend OTP email:", emailError);
+      
+      // Clear OTP if email fails
+      user.passwordResetOTP = undefined;
+      user.passwordResetOTPExpires = undefined;
+      await user.save();
+
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send OTP email. Please try again later.",
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;
