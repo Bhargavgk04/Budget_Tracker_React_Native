@@ -10,7 +10,6 @@ import { useTransactions } from '@/hooks/useTransactions';
 import UserService from '@/services/UserService';
 import { STORAGE_KEYS } from '@/utils/constants';
 import ResponsiveContainer from '@/components/layout/ResponsiveContainer';
-import ProfilePictureUpload from '@/components/profile/ProfilePictureUpload';
 
 // Helper to format currency as Indian Rupees
 const formatCurrency = (amount: number) => {
@@ -208,21 +207,11 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
-  const handleProfilePictureUpload = () => {
-    // Existing upload logic can be wired here if needed
-  };
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ResponsiveContainer>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={[styles.headerCard, { backgroundColor: theme.colors.surface }]}>    
-            <ProfilePictureUpload
-              currentPicture={user?.profilePicture}
-              onUploadSuccess={handleProfilePictureUpload}
-              onUploadError={(e) => console.log('[ProfileScreen] Profile picture upload error', e)}
-            />
-
             {editingProfile ? (
               <View style={styles.editContainer}>
                 <TextInput

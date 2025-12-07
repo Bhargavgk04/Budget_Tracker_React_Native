@@ -16,16 +16,30 @@ import { CATEGORIES } from '../utils/constants';
 import AnimatedCard from '../components/animations/AnimatedCard';
 import CountUpAnimation from '../components/animations/CountUpAnimation';
 import MenuModal from '../components/common/MenuModal';
+import RefreshControl from '../components/common/RefreshControl';
 import { useNavigation } from '@react-navigation/native';
 
 const DashboardScreen = () => {
   const { user } = useAuth();
-  const { transactions, summary, refreshData } = useTransactions();
+  const { transactions, summary, refreshData, isLoading } = useTransactions();
   const navigation = useNavigation();
   const [showMenu, setShowMenu] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
   const headerOpacity = useSharedValue(0);
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData(true); // Force refresh
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Data is already loaded by TransactionContext, no need to call refreshData() here
@@ -125,7 +139,16 @@ const DashboardScreen = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+      >
         {/* Balance Display */}
         <View className="px-6 mb-6">
           <CountUpAnimation

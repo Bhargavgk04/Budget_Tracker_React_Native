@@ -4,6 +4,9 @@ import { STORAGE_KEYS } from "../utils/constants";
 // API Base URL - Update this to match your backend
 const API_BASE_URL = process.env.API_URL || "https://budget-tracker-react-native-kjff.onrender.com/api";
 
+// Cache invalidation timestamps
+const cacheInvalidationTimes = new Map();
+
 // Helper function to get auth token
 const getAuthToken = async () => {
   try {
@@ -15,9 +18,14 @@ const getAuthToken = async () => {
   }
 };
 
-// Helper function to make API requests
-const apiRequest = async (endpoint, options = {}) => {
+// Helper function to make API requests with cache invalidation
+const apiRequest = async (endpoint, options = {}, invalidateCache = false) => {
   try {
+    // Invalidate cache for POST/PUT/DELETE operations
+    if (invalidateCache || ['POST', 'PUT', 'DELETE'].includes(options.method)) {
+      await invalidateRelatedCache(endpoint);
+    }
+
     const token = await getAuthToken();
     const headers = {
       "Content-Type": "application/json",
@@ -44,6 +52,22 @@ const apiRequest = async (endpoint, options = {}) => {
     console.error(`API Request Error (${endpoint}):`, error);
     throw error;
   }
+};
+
+// Cache invalidation helper
+const invalidateRelatedCache = async (endpoint) => {
+  const cacheKeys = [
+    'transactions_all',
+    'transactions_stats', 
+    'analytics_category-breakdown',
+    'analytics_summary'
+  ];
+  
+  for (const key of cacheKeys) {
+    cacheInvalidationTimes.set(key, Date.now());
+  }
+  
+  console.log('Cache invalidated for:', cacheKeys);
 };
 
 // Auth API
@@ -101,7 +125,7 @@ export const transactionAPI = {
       const response = await apiRequest("/transactions", {
         method: "POST",
         body: JSON.stringify(transactionData),
-      });
+      }, true); // Invalidate cache
 
       return { success: true, data: response.data };
     } catch (error) {
@@ -131,7 +155,7 @@ export const transactionAPI = {
       const response = await apiRequest(`/transactions/${id}`, {
         method: "PUT",
         body: JSON.stringify(transactionData),
-      });
+      }, true); // Invalidate cache
 
       return { success: true, data: response.data };
     } catch (error) {
@@ -144,7 +168,7 @@ export const transactionAPI = {
     try {
       const response = await apiRequest(`/transactions/${id}`, {
         method: "DELETE",
-      });
+      }, true); // Invalidate cache
 
       return { success: true, data: response.data };
     } catch (error) {

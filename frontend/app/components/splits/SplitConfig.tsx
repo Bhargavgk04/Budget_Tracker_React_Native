@@ -6,6 +6,10 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
+  Modal,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 import { SplitFormData, Friend } from "@/types";
@@ -34,6 +38,8 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
   const [paidByUserId, setPaidByUserId] = useState<string>(paidBy);
   const [includePayer, setIncludePayer] = useState<boolean>(false);
   const [lockedParticipants, setLockedParticipants] = useState<Set<number>>(new Set());
+  const [showNewUserModal, setShowNewUserModal] = useState<boolean>(false);
+  const [newUser, setNewUser] = useState<{name: string, phone: string}>({ name: '', phone: '' });
 
   // Simplified UI - default to equal split and exclude payer for better UX
   useEffect(() => {
@@ -41,19 +47,52 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
     setIncludePayer(false);
   }, []);
 
-  const getDisplayName = (id: string, name?: string) => {
-    if (id === paidBy) return "You";
-    return name || "Friend";
+  // Generate a temporary ID for new users
+  const generateTempId = () => `temp_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Validate phone number format
+  const isValidPhone = (phone: string) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    return phoneRegex.test(phone);
   };
 
-  // Initialize shares when participants or split type changes
-  useEffect(() => {
-    if (participants.length === 0) return;
+  // Add a new user to the participants list
+  const handleAddNewUser = () => {
+    if (!newUser.name.trim()) {
+      Alert.alert('Error', 'Please enter a name');
+      return;
+    }
+
+    if (newUser.phone && !isValidPhone(newUser.phone)) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    const newParticipant = {
+      _id: generateTempId(),
+      name: newUser.name.trim(),
+      phone: newUser.phone,
+      isNew: true
+    };
+
+    // Add to participants and update shares
+    const updatedParticipants = [...participants, newParticipant];
+    updateParticipantShares(updatedParticipants);
+    
+    // Reset form and close modal
+    setNewUser({ name: '', phone: '' });
+    setShowNewUserModal(false);
+  };
+
+  // Update participant shares when participants change
+  const updateParticipantShares = (updatedParticipants: any[]) => {
+    if (updatedParticipants.length === 0) return;
 
     const baseParticipants: Array<{ _id: string; name: string }> = [
       ...(includePayer ? [{ _id: paidByUserId, name: getDisplayName(paidByUserId) }] : []),
-      ...participants.map((p) => ({ _id: p._id, name: p.name })),
+      ...updatedParticipants.map((p) => ({ _id: p._id, name: p.name })),
     ];
+    
     // Remove duplicates by _id
     const seen = new Set<string>();
     const effectiveParticipants = baseParticipants.filter(p => {
@@ -74,24 +113,25 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
         share: equalShares[i],
         percentage: (equalShares[i] / totalAmount) * 100,
         name: p.name,
+        isNew: updatedParticipants.find(up => up._id === p._id)?.isNew || false
       }));
     } else if (splitType === "percentage") {
-      // Initialize with equal percentages
       const defaultPercentage = 100 / effectiveParticipants.length;
       shares = effectiveParticipants.map((p) => ({
         userId: p._id,
         share: (totalAmount * defaultPercentage) / 100,
         percentage: defaultPercentage,
         name: p.name,
+        isNew: updatedParticipants.find(up => up._id === p._id)?.isNew || false
       }));
     } else {
-      // Custom - initialize with equal amounts
       const defaultShare = totalAmount / effectiveParticipants.length;
       shares = effectiveParticipants.map((p) => ({
         userId: p._id,
         share: defaultShare,
         percentage: undefined,
         name: p.name,
+        isNew: updatedParticipants.find(up => up._id === p._id)?.isNew || false
       }));
     }
 
@@ -107,6 +147,16 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
     if (validation.isValid) {
       onSplitChange({ splitType, participants: shares, paidBy: paidByUserId });
     }
+  };
+
+  const getDisplayName = (id: string, name?: string) => {
+    if (id === paidBy) return "You";
+    return name || "Friend";
+  };
+
+  // Initialize shares when participants or split type changes
+  useEffect(() => {
+    updateParticipantShares(participants);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     splitType,
@@ -480,6 +530,103 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
 };
 
 const styles = StyleSheet.create({
+  // New styles for the add user functionality
+  addUserContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    backgroundColor: '#F0F2FF',
+  },
+  addButtonText: {
+    color: '#6366F1',
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 20,
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 12,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: 'white',
+  },
+  cancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  // Existing styles
   container: {
     padding: 16,
     backgroundColor: "#fff",

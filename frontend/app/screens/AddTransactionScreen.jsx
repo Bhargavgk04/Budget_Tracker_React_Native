@@ -35,7 +35,7 @@ import SplitConfig from '../components/splits/SplitConfig';
 
 const AddTransactionScreen = ({ navigation, route }) => {
   const { user } = useAuth();
-  const { addTransaction } = useTransactions();
+  const { addTransaction, refreshData } = useTransactions();
   
   const [amount, setAmount] = useState('');
   const [type, setType] = useState(route?.params?.type || TRANSACTION_TYPES.EXPENSE);
@@ -169,9 +169,21 @@ const AddTransactionScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Validate split amounts if split is enabled
+    if (splitData) {
+      const totalSplitAmount = splitData.participants.reduce((sum, p) => sum + (p.share || 0), 0);
+      const amountNum = parseFloat(amount);
+      
+      if (Math.abs(totalSplitAmount - amountNum) > 0.01) {
+        Alert.alert('Error', `Split amounts (${totalSplitAmount}) must equal the total amount (${amountNum})`);
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
+      // Prepare transaction data with proper handling for new users
       const transactionData = {
         type,
         amount: parseFloat(amount),
@@ -185,7 +197,13 @@ const AddTransactionScreen = ({ navigation, route }) => {
           isShared: true,
           paidBy: user._id,
           splitType: splitData.splitType,
-          participants: splitData.participants
+          participants: splitData.participants.map(p => ({
+            ...p,
+            // Mark new users for backend processing
+            isNewUser: p.isNew || false,
+            // Include phone number if available for new users
+            ...(p.isNew && p.phone ? { phone: p.phone } : {})
+          }))
         } : undefined
       };
 
@@ -194,8 +212,23 @@ const AddTransactionScreen = ({ navigation, route }) => {
       console.log('Transaction result:', result);
       
       if (result.success) {
+        // Force refresh all transaction data
+        await refreshData(true);
+        
+        // Show success and navigate back
         Alert.alert('Success', 'Transaction added successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() }
+          { 
+            text: 'OK', 
+            onPress: () => {
+              // Clear form and navigate back
+              setAmount('');
+              setDescription('');
+              setCategory('');
+              setSelectedFriend(null);
+              setSplitData(null);
+              navigation.goBack();
+            }
+          }
         ]);
       } else {
         Alert.alert('Error', result.error || 'Failed to add transaction');
@@ -496,16 +529,18 @@ const AddTransactionScreen = ({ navigation, route }) => {
         {/* Split Configuration */}
         {selectedFriend && showSplitConfig && amount && parseFloat(amount) > 0 && (
           <View className="mx-6 mb-6">
-            <SplitConfig
-              totalAmount={parseFloat(amount)}
-              participants={[
-                { _id: user._id, name: user.name || 'You', uid: user.uid },
-                selectedFriend
-              ]}
-              splitType="equal"
-              onSplitChange={handleSplitChange}
-              paidBy={user._id}
-            />
+            <View style={{ flex: 1, paddingBottom: 20 }}>
+              <SplitConfig
+                totalAmount={parseFloat(amount) || 0}
+                participants={selectedFriend ? [selectedFriend] : []}
+                splitType={splitData?.splitType || "equal"}
+                onSplitChange={(data) => {
+                  console.log('Split data updated:', data);
+                  setSplitData(data);
+                }}
+                paidBy={user._id}
+              />
+            </View>
           </View>
         )}
 

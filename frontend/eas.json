@@ -1,28 +1,26 @@
 {
   "cli": {
     "version": ">= 16.28.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
     "preview": {
-      "distribution": "internal"
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "API_URL": "https://budget-tracker-react-native-kjff.onrender.com/api",
+        "NODE_ENV": "development"
+      }
     },
     "production": {
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "API_URL": "https://budget-tracker-react-native-kjff.onrender.com/api",
         "NODE_ENV": "production"
-      },
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }

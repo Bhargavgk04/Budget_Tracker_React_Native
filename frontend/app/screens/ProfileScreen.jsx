@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, RefreshControl, Clipboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,8 +18,20 @@ import PulseAnimation from '../components/animations/PulseAnimation';
 import CountUpAnimation from '../components/animations/CountUpAnimation';
 
 const ProfileScreen = () => {
-  const { user, logout } = useAuth();
-  const { summary } = useTransactions();
+  const { user, logout, updateProfilePicture } = useAuth();
+  const { summary, refreshData } = useTransactions();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData(true);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -102,7 +114,18 @@ const ProfileScreen = () => {
         </SlideInAnimation>
       </Animated.View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#6366F1']}
+            tintColor="#6366F1"
+          />
+        }
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+      >
         {/* User Card */}
         <Animated.View className="mx-6 mb-6" style={profileCardAnimatedStyle}>
           <LinearGradient
@@ -137,11 +160,22 @@ const ProfileScreen = () => {
                 </Text>
               </SlideInAnimation>
               <SlideInAnimation direction="up" delay={900}>
-                <View className="bg-white bg-opacity-20 rounded-full px-3 py-1">
+                <TouchableOpacity 
+                  className="bg-white bg-opacity-20 rounded-full px-3 py-1 flex-row items-center"
+                  onPress={() => {
+                    Clipboard.setString(user?.uid || '');
+                    Alert.alert('Copied!', 'Your UID has been copied to clipboard');
+                  }}
+                  activeOpacity={0.8}
+                >
                   <Text className="text-white text-sm font-medium">
-                    UID: {user?.uid}
+                    UID: {user?.uid || 'Generating...'}
                   </Text>
-                </View>
+                  <MaterialIcons name="content-copy" size={14} color="white" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+                <Text className="text-white text-xs mt-2 text-center opacity-70">
+                  Tap to copy UID for split payments
+                </Text>
               </SlideInAnimation>
             </View>
           </LinearGradient>

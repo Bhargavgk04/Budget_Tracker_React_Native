@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { transactionAPI, analyticsAPI } from '../services/api';
 import { useAuth } from './AuthContext';
+import { AppState } from 'react-native';
+import realtimeService from '../services/RealtimeService';
 
 const TransactionContext = createContext();
 
@@ -57,6 +59,9 @@ export const TransactionProvider = ({ children }) => {
   const [state, dispatch] = useReducer(transactionReducer, initialState);
   const { user, isAuthenticated } = useAuth();
   const isInitialMount = useRef(true);
+  const appState = useRef(AppState.currentState);
+  const refreshTimeoutRef = useRef(null);
+  const lastRefreshTime = useRef(0);
 
   // Memoize load functions to prevent infinite loops
   const loadTransactions = useCallback(async () => {
@@ -93,6 +98,7 @@ export const TransactionProvider = ({ children }) => {
     }
   }, [user?._id]);
 
+  // Enhanced transaction operations with auto-refresh
   const addTransaction = useCallback(async (transactionData) => {
     console.log('Adding transaction with data:', transactionData);
     if (!user?._id) return { success: false, error: 'User not authenticated' };
@@ -107,11 +113,14 @@ export const TransactionProvider = ({ children }) => {
       const transaction = response.data || response;
       dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
       
-      // Refresh summary and breakdown
+      // Auto-refresh summary and breakdown
       await Promise.all([
         loadSummary(),
         loadCategoryBreakdown()
       ]);
+      
+      // Trigger full refresh after a short delay to ensure backend consistency
+      setTimeout(() => refreshData(true), 500);
       
       return { success: true, data: transaction };
     } catch (error) {
@@ -120,50 +129,146 @@ export const TransactionProvider = ({ children }) => {
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       return { success: false, error: errorMessage };
     }
-  }, [user?._id]); // Simplified dependencies to prevent infinite loops
+  }, [user?._id, loadSummary, loadCategoryBreakdown, refreshData]);
 
   const updateTransaction = useCallback(async (id, transactionData) => {
     try {
       const response = await transactionAPI.update(id, transactionData);
       dispatch({ type: 'UPDATE_TRANSACTION', payload: response.data });
       
-      // Refresh summary and breakdown
+      // Auto-refresh summary and breakdown
       await Promise.all([
         loadSummary(),
         loadCategoryBreakdown()
       ]);
+      
+      // Trigger full refresh after a short delay to ensure backend consistency
+      setTimeout(() => refreshData(true), 500);
       
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       return { success: false, error: error.message };
     }
-  }, [loadSummary, loadCategoryBreakdown]);
+  }, [loadSummary, loadCategoryBreakdown, refreshData]);
 
   const deleteTransaction = useCallback(async (id) => {
     try {
       await transactionAPI.delete(id);
       dispatch({ type: 'DELETE_TRANSACTION', payload: id });
       
-      // Refresh summary and breakdown
+      // Auto-refresh summary and breakdown
       await Promise.all([
         loadSummary(),
         loadCategoryBreakdown()
       ]);
+      
+      // Trigger full refresh after a short delay to ensure backend consistency
+      setTimeout(() => refreshData(true), 500);
       
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       return { success: false, error: error.message };
     }
-  }, [loadSummary, loadCategoryBreakdown]);
+  }, [loadSummary, loadCategoryBreakdown, refreshData]);
 
-  const refreshData = useCallback(() => {
+  // Enhanced refresh function with debouncing
+  const refreshData = useCallback(async (force = false) => {
     if (!user?._id) return;
-    loadTransactions();
-    loadSummary();
-    loadCategoryBreakdown();
+    
+    const now = Date.now();
+    // Prevent excessive refresh calls (minimum 2 seconds between calls)
+    if (!force && now - lastRefreshTime.current < 2000) {
+      console.log('Refresh throttled, skipping...');
+      return;
+    }
+    
+    lastRefreshTime.current = now;
+    console.log('Refreshing data...');
+    
+    try {
+      await Promise.all([
+        loadTransactions(),
+        loadSummary(),
+        loadCategoryBreakdown()
+      ]);
+      console.log('Data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
   }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
+
+  // Enhanced app state monitoring for auto-refresh
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      console.log('App state changed:', nextAppState);
+      
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground, refresh data
+        console.log('App became active, refreshing data...');
+        refreshData(true);
+      }
+      
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, [refreshData]);
+
+  // Real-time service integration
+  useEffect(() => {
+    if (!isAuthenticated || !user?._id) {
+      realtimeService.stop();
+      return;
+    }
+
+    // Subscribe to real-time updates
+    const unsubscribe = realtimeService.subscribe((syncData) => {
+      if (syncData.error) {
+        console.error('Real-time sync error:', syncData.error);
+        dispatch({ type: 'SET_ERROR', payload: syncData.error });
+        return;
+      }
+
+      // Update state with synced data
+      if (syncData.transactions) {
+        dispatch({ type: 'SET_TRANSACTIONS', payload: syncData.transactions });
+      }
+      if (syncData.summary) {
+        dispatch({ type: 'SET_SUMMARY', payload: syncData.summary });
+      }
+      if (syncData.categoryBreakdown) {
+        dispatch({ type: 'SET_CATEGORY_BREAKDOWN', payload: syncData.categoryBreakdown });
+      }
+    });
+
+    // Start real-time service
+    realtimeService.start();
+
+    return () => {
+      unsubscribe();
+      realtimeService.stop();
+    };
+  }, [isAuthenticated, user?._id]);
+
+  // Periodic refresh when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user?._id) return;
+
+    // Set up periodic refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      refreshData(false); // Non-forced refresh
+    }, 30000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAuthenticated, user?._id, refreshData]);
 
   // Load transactions when user is authenticated (only once on mount)
   useEffect(() => {
@@ -173,7 +278,7 @@ export const TransactionProvider = ({ children }) => {
       loadSummary();
       loadCategoryBreakdown();
     }
-  }, [isAuthenticated, user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]); // Fixed: Added missing dependencies
+  }, [isAuthenticated, user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
 
   const value = {
     ...state,
@@ -183,6 +288,8 @@ export const TransactionProvider = ({ children }) => {
     deleteTransaction,
     refreshData,
     loadTransactions,
+    // Expose refresh control for manual refresh
+    forceRefresh: () => refreshData(true),
   };
 
   return (

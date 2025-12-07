@@ -172,7 +172,7 @@ app.use('/api/transactions', authMiddleware, transactionRoutes);
 app.use('/api/categories', authMiddleware, categoryRoutes);
 app.use('/api/budgets', authMiddleware, budgetRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
-app.use('/api/user', authMiddleware, userRoutes);
+app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/friends', authMiddleware, friendRoutes);
 app.use('/api/settlements', authMiddleware, settlementRoutes);
 app.use('/api/groups', authMiddleware, groupRoutes);

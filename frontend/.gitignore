@@ -4,6 +4,9 @@ node_modules/
 # Expo
 .expo/
 .expo-shared/
+.expo
+.expo/*
+!.expo/.gitkeep
 dist/
 web-build/
 
@@ -15,6 +18,12 @@ web-build/
 *.key
 *.mobileprovision
 *.keystore
+
+# Android
+dist/
+android/
+android-debug.apk
+android-release.apk
 
 # Metro
 .metro-health-check*

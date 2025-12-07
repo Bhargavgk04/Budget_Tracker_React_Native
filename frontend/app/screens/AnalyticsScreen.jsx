@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PieChart, BarChart } from 'react-native-chart-kit';
@@ -17,16 +17,30 @@ import SlideInAnimation from '../components/animations/SlideInAnimation';
 import CountUpAnimation from '../components/animations/CountUpAnimation';
 import PulseAnimation from '../components/animations/PulseAnimation';
 import AppHeader from '../components/common/AppHeader';
+import RefreshControlComponent from '../components/common/RefreshControl';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const AnalyticsScreen = () => {
   const { summary, categoryBreakdown, transactions, refreshData } = useTransactions();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
   const headerOpacity = useSharedValue(0);
   const chartsScale = useSharedValue(0.8);
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData(true); // Force refresh
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Data is already loaded by TransactionContext
@@ -163,7 +177,16 @@ const AnalyticsScreen = () => {
         </SlideInAnimation>
       </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControlComponent
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+      >
         {/* Summary Cards */}
         <View className="px-6 mb-6">
           <View className="flex-row justify-between">

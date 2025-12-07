@@ -24,16 +24,31 @@ import AnimatedCard from '../components/animations/AnimatedCard';
 import SlideInAnimation from '../components/animations/SlideInAnimation';
 import PulseAnimation from '../components/animations/PulseAnimation';
 import AppHeader from '../components/common/AppHeader';
+import RefreshControlComponent from '../components/common/RefreshControl';
+import { useFocusEffect } from '@react-navigation/native';
 
 const TransactionsScreen = () => {
   const { transactions, refreshData, deleteTransaction, isLoading } = useTransactions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
   const headerOpacity = useSharedValue(0);
   const searchBarScale = useSharedValue(0.9);
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData(true); // Force refresh
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Animate entrance
@@ -193,6 +208,24 @@ const TransactionsScreen = () => {
     transform: [{ scale: searchBarScale.value }],
   }));
 
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      
+      const refreshOnFocus = async () => {
+        if (isActive) {
+          await refreshData();
+        }
+      };
+      
+      refreshOnFocus();
+      
+      return () => {
+        isActive = false;
+      };
+    }, [refreshData])
+  );
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Header */}
@@ -268,8 +301,8 @@ const TransactionsScreen = () => {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
-              onRefresh={refreshData}
+              refreshing={refreshing || isLoading}
+              onRefresh={handleRefresh}
               colors={['#6366F1']}
               tintColor="#6366F1"
             />

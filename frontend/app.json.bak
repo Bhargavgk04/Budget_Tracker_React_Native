@@ -1,7 +1,8 @@
 {
   "expo": {
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-font"
     ],
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -29,7 +30,10 @@
       },
       "package": "com.bhargavgk.mobilebudgettracker",
       "versionCode": 1,
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"]
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "androidStatusBar": {
       "barStyle": "light-content",
