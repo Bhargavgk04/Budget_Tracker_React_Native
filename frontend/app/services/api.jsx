@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../utils/constants";
 
 // API Base URL - Update this to match your backend
-const API_BASE_URL = process.env.API_URL || "https://budget-tracker-react-native-kjff.onrender.com/api";
+const API_BASE_URL = process.env.API_URL || "http://192.168.0.125:3000/api";
 
 // Cache invalidation timestamps
 const cacheInvalidationTimes = new Map();
