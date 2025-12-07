@@ -27,8 +27,9 @@ const validationMiddleware = require('./middleware/validation');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy for Render deployment
-app.set('trust proxy', true);
+// Trust proxy for Render deployment (must be set before rate limiting)
+// Use number of proxies instead of true to be more secure
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet({
@@ -78,7 +79,7 @@ app.use(cors({
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
-// Rate limiting
+// Rate limiting with proper trust proxy configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -87,7 +88,8 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true,
+  // Don't set trustProxy here - it uses app.set('trust proxy') setting
+  validate: { trustProxy: false }, // Disable validation since we set it at app level
 });
 
 const authLimiter = rateLimit({
@@ -97,7 +99,8 @@ const authLimiter = rateLimit({
     error: 'Too many authentication attempts, please try again later.',
   },
   skipSuccessfulRequests: true,
-  trustProxy: true,
+  // Don't set trustProxy here - it uses app.set('trust proxy') setting
+  validate: { trustProxy: false }, // Disable validation since we set it at app level
 });
 
 app.use('/api/auth', authLimiter);

@@ -12,7 +12,7 @@ class EmailService {
     try {
       if (this.initialized) return;
 
-      // Create transporter with optimized settings for speed
+      // Create transporter with optimized settings for production
       this.transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
@@ -23,13 +23,13 @@ class EmailService {
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
-        // Reduced timeouts for faster failure detection
-        connectionTimeout: 5000, // 5 seconds
-        greetingTimeout: 5000,
-        socketTimeout: 10000,
+        // Increased timeouts for production environment (Render can be slower)
+        connectionTimeout: 30000, // 30 seconds
+        greetingTimeout: 30000,
+        socketTimeout: 60000, // 60 seconds
         // Keep connection alive for faster subsequent sends
         tls: {
-          rejectUnauthorized: false // For development
+          rejectUnauthorized: process.env.NODE_ENV === 'production' // Strict in production
         }
       });
 
@@ -53,10 +53,10 @@ class EmailService {
         return true;
       }
 
-      // Add timeout to prevent hanging - increased to 10 seconds for Render
+      // Add timeout to prevent hanging - 30 seconds for production
       const verifyPromise = this.transporter.verify();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 10000)
+        setTimeout(() => reject(new Error('Connection timeout')), 30000)
       );
 
       await Promise.race([verifyPromise, timeoutPromise]);
