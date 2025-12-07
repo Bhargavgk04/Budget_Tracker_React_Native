@@ -172,6 +172,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Root route to fix 404 errors
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Budget Tracker Backend API',
+    version: '1.0.0',
+    status: 'Running',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      auth: '/api/auth'
+    }
+  });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', authMiddleware, splitRoutes);
