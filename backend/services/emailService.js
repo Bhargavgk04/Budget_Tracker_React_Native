@@ -3,28 +3,30 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = null;
-    this.resend = null;
+    this.brevo = null;
     this.provider = null;
     this.initialized = false;
     this.isVerified = false;
   }
 
-  // Initialize email service (Resend or Nodemailer)
+  // Initialize email service (Brevo or Nodemailer)
   initialize() {
     try {
       if (this.initialized) return;
 
-      // Try Resend first if API key is available
-      if (process.env.RESEND_API_KEY) {
-        const { Resend } = require('resend');
-        this.resend = new Resend(process.env.RESEND_API_KEY);
-        this.provider = 'resend';
+      // Try Brevo first if API key is available
+      if (process.env.BREVO_API_KEY) {
+        const brevo = require('@getbrevo/brevo');
+        const apiInstance = new brevo.TransactionalEmailsApi();
+        apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+        this.brevo = apiInstance;
+        this.provider = 'brevo';
         this.initialized = true;
-        console.log('✓ Email service initialized with Resend');
+        console.log('✓ Email service initialized with Brevo');
         return;
       }
 
-      // Fallback to Nodemailer (Gmail)
+      // Fallback to Nodemailer (Gmail/SMTP)
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         this.transporter = nodemailer.createTransport({
           service: process.env.EMAIL_SERVICE || 'gmail',
@@ -48,7 +50,7 @@ class EmailService {
         return;
       }
 
-      console.warn('⚠ No email service configured. Set RESEND_API_KEY or EMAIL_USER/EMAIL_PASS');
+      console.warn('⚠ No email service configured. Set BREVO_API_KEY or EMAIL_USER/EMAIL_PASS');
       this.initialized = false;
     } catch (error) {
       console.error('✗ Email service initialization failed:', error.message);
@@ -192,17 +194,22 @@ class EmailService {
           </html>
         `;
 
-      // Send via Resend or Nodemailer
-      if (this.provider === 'resend') {
-        const result = await this.resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Budget Tracker <onboarding@resend.dev>',
-          to: email,
-          subject: 'Password Reset OTP - Budget Tracker',
-          html: htmlContent,
-        });
+      // Send via Brevo or Nodemailer
+      if (this.provider === 'brevo') {
+        const brevo = require('@getbrevo/brevo');
+        const sendSmtpEmail = new brevo.SendSmtpEmail();
+        sendSmtpEmail.sender = { 
+          name: 'Budget Tracker', 
+          email: process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER 
+        };
+        sendSmtpEmail.to = [{ email: email }];
+        sendSmtpEmail.subject = 'Password Reset OTP - Budget Tracker';
+        sendSmtpEmail.htmlContent = htmlContent;
+        
+        const result = await this.brevo.sendTransacEmail(sendSmtpEmail);
         const duration = Date.now() - startTime;
-        console.log(`✓ Password reset OTP email sent via Resend in ${duration}ms:`, result.id);
-        return { success: true, messageId: result.id, duration };
+        console.log(`✓ Password reset OTP email sent via Brevo in ${duration}ms:`, result.messageId);
+        return { success: true, messageId: result.messageId, duration };
       } else {
         const mailOptions = {
           from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,
@@ -332,17 +339,22 @@ class EmailService {
           </html>
         `;
 
-      // Send via Resend or Nodemailer
-      if (this.provider === 'resend') {
-        const result = await this.resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Budget Tracker <onboarding@resend.dev>',
-          to: email,
-          subject: 'Password Changed Successfully - Budget Tracker',
-          html: htmlContent,
-        });
+      // Send via Brevo or Nodemailer
+      if (this.provider === 'brevo') {
+        const brevo = require('@getbrevo/brevo');
+        const sendSmtpEmail = new brevo.SendSmtpEmail();
+        sendSmtpEmail.sender = { 
+          name: 'Budget Tracker', 
+          email: process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER 
+        };
+        sendSmtpEmail.to = [{ email: email }];
+        sendSmtpEmail.subject = 'Password Changed Successfully - Budget Tracker';
+        sendSmtpEmail.htmlContent = htmlContent;
+        
+        const result = await this.brevo.sendTransacEmail(sendSmtpEmail);
         const duration = Date.now() - startTime;
-        console.log(`✓ Password change confirmation email sent via Resend in ${duration}ms:`, result.id);
-        return { success: true, messageId: result.id, duration };
+        console.log(`✓ Password change confirmation email sent via Brevo in ${duration}ms:`, result.messageId);
+        return { success: true, messageId: result.messageId, duration };
       } else {
         const mailOptions = {
           from: `"Budget Tracker" <${process.env.EMAIL_USER}>`,

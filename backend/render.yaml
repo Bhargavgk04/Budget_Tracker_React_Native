@@ -22,9 +22,9 @@ services:
         value: thakurkakashi@gmail.com
       - key: EMAIL_PASS
         value: xwvg ekaz yvnu vbcl
-      - key: RESEND_API_KEY
+      - key: BREVO_API_KEY
         sync: false
-      - key: RESEND_FROM_EMAIL
-        value: Budget Tracker <onboarding@resend.dev>
+      - key: BREVO_FROM_EMAIL
+        value: thakurkakashi@gmail.com
     healthCheckPath: /health
     autoDeploy: true
