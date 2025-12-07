@@ -87,6 +87,7 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: false,
 });
 
 const authLimiter = rateLimit({
@@ -96,6 +97,7 @@ const authLimiter = rateLimit({
     error: 'Too many authentication attempts, please try again later.',
   },
   skipSuccessfulRequests: true,
+  trustProxy: false,
 });
 
 app.use('/api/auth', authLimiter);
