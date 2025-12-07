@@ -12,6 +12,7 @@ const {
   validateResetPassword,
   validateChangePassword,
 } = require("../middleware/validation");
+const { sendPasswordResetEmail, sendPasswordChangeNotification } = require("../services/emailService");
 
 const router = express.Router();
 
@@ -343,6 +344,13 @@ router.post(
 
       await user.save();
 
+      // Send password reset email
+      const emailSent = await sendPasswordResetEmail(email, resetToken);
+      if (!emailSent) {
+        console.error('Failed to send password reset email');
+        // Continue with the process even if email fails
+      }
+
       // Log password reset request
       await AuditLog.logEvent({
         userId: user._id,
@@ -352,10 +360,6 @@ router.post(
         deviceInfo,
         success: true,
       });
-
-      // In a real application, send email with reset link
-      // Reset link format: https://yourapp.com/reset-password?token=resetToken
-      console.log(`Password reset token for ${email}: ${resetToken}`);
 
       res.status(200).json({
         success: true,
@@ -456,6 +460,13 @@ router.post(
 
       await user.save();
 
+      // Send password change notification email
+      const emailSent = await sendPasswordChangeNotification(user.email);
+      if (!emailSent) {
+        console.error('Failed to send password reset notification email');
+        // Continue with the process even if email fails
+      }
+
       // Log password reset completion
       await AuditLog.logEvent({
         userId: user._id,
@@ -465,8 +476,6 @@ router.post(
         deviceInfo,
         success: true,
       });
-
-      // In production, send confirmation email here
 
       res.status(200).json({
         success: true,
@@ -686,6 +695,13 @@ router.post(
 
       await user.save();
 
+      // Send password change notification email
+      const emailSent = await sendPasswordChangeNotification(user.email);
+      if (!emailSent) {
+        console.error('Failed to send password change notification email');
+        // Continue with the process even if email fails
+      }
+
       // Log password change
       await AuditLog.logEvent({
         userId: user._id,
@@ -696,8 +712,6 @@ router.post(
         success: true,
       });
 
-      // In production, send notification email here
-
       res.status(200).json({
         success: true,
         message: "Password changed successfully",
@@ -707,5 +721,34 @@ router.post(
     }
   }
 );
+
+// @desc    Test email sending
+// @route   GET /api/auth/test-email
+// @access  Public
+router.get('/test-email', async (req, res) => {
+  try {
+    const testEmail = "thakurkakashi@gmail.com"; // Using your email from the project
+    const testToken = "test-token-12345";
+    
+    // Test password reset email
+    const resetEmailSent = await sendPasswordResetEmail(testEmail, testToken);
+    
+    // Test password changed notification
+    const changedEmailSent = await sendPasswordChangeNotification(testEmail);
+    
+    res.status(200).json({
+      success: true,
+      resetEmailSent,
+      changedEmailSent,
+      message: "Test emails sent. Check your inbox."
+    });
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;
