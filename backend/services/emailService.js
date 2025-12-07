@@ -13,6 +13,11 @@ const emailConfig = {
 // Create transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
+// Generate OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 // Email templates
 const emailTemplates = {
   forgotPassword: (resetToken) => ({
@@ -29,6 +34,27 @@ const emailTemplates = {
         <p>Or copy and paste this link in your browser:</p>
         <p>${process.env.FRONTEND_URL}/reset-password?token=${resetToken}</p>
         <p>This link will expire in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 14px;">
+          Budget Tracker App<br>
+          This is an automated message, please do not reply.
+        </p>
+      </div>
+    `
+  }),
+
+  otpVerification: (otp) => ({
+    subject: 'OTP Verification - Budget Tracker',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #6366F1;">Budget Tracker - OTP Verification</h2>
+        <p>Hi there,</p>
+        <p>You requested to reset your password. Use the OTP below to verify your identity:</p>
+        <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+          <span style="font-size: 32px; font-weight: bold; color: #6366F1; letter-spacing: 4px;">${otp}</span>
+        </div>
+        <p>This OTP will expire in <strong>10 minutes</strong>.</p>
         <p>If you didn't request this, please ignore this email.</p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
         <p style="color: #6b7280; font-size: 14px;">
@@ -82,6 +108,12 @@ const sendPasswordResetEmail = async (email, resetToken) => {
   return await sendEmail(email, template);
 };
 
+// Send OTP email
+const sendOTPEmail = async (email, otp) => {
+  const template = emailTemplates.otpVerification(otp);
+  return await sendEmail(email, template);
+};
+
 // Send password change notification
 const sendPasswordChangeNotification = async (email) => {
   const template = emailTemplates.passwordChanged();
@@ -102,7 +134,9 @@ const verifyEmailConfig = async () => {
 
 module.exports = {
   sendPasswordResetEmail,
+  sendOTPEmail,
   sendPasswordChangeNotification,
   verifyEmailConfig,
-  transporter
+  transporter,
+  generateOTP
 };

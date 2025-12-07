@@ -17,7 +17,7 @@ import SlideInAnimation from '../components/animations/SlideInAnimation';
 import PulseAnimation from '../components/animations/PulseAnimation';
 import CountUpAnimation from '../components/animations/CountUpAnimation';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const { user, logout, updateProfilePicture } = useAuth();
   const { summary, refreshData } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
@@ -248,7 +248,7 @@ const ProfileScreen = () => {
                     Alert.alert('Personal Information', 'Edit your profile details here.');
                     break;
                   case 'security':
-                    Alert.alert('Security Settings', 'Manage your password and security preferences.');
+                    navigation.navigate('ChangePasswordScreen');
                     break;
                   case 'notifications':
                     Alert.alert('Notification Settings', 'Customize your notification preferences.');

@@ -12,7 +12,7 @@ const {
   validateResetPassword,
   validateChangePassword,
 } = require("../middleware/validation");
-const { sendPasswordResetEmail, sendPasswordChangeNotification } = require("../services/emailService");
+const { sendPasswordResetEmail, sendPasswordChangeNotification, sendOTPEmail, generateOTP } = require("../services/emailService");
 
 const router = express.Router();
 
@@ -372,6 +372,177 @@ router.post(
     }
   }
 );
+
+// @desc    Send OTP for password reset
+// @route   POST /api/auth/send-otp
+// @access  Public
+router.post("/send-otp", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if email exists for security
+      return res.status(200).json({
+        success: true,
+        message: "OTP sent to your email if account exists",
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    
+    // Hash OTP and save to user with 10-minute expiry
+    user.passwordResetOTP = crypto.createHash("sha256").update(otp).digest("hex");
+    user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await user.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(email, otp);
+    if (!emailSent) {
+      console.error('Failed to send OTP email');
+      // Continue with the process even if email fails
+    }
+
+    // Log OTP request
+    await AuditLog.logEvent({
+      userId: user._id,
+      eventType: "otp_request",
+      ipAddress,
+      userAgent: deviceInfo.userAgent,
+      deviceInfo,
+      success: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to your email",
+      // Include OTP in development mode only
+      ...(process.env.NODE_ENV === "development" && { otp }),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Verify OTP
+// @route   POST /api/auth/verify-otp
+// @access  Public
+router.post("/verify-otp", async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and OTP are required",
+      });
+    }
+
+    // Hash the provided OTP
+    const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
+    const user = await User.findOne({
+      email,
+      passwordResetOTP: hashedOTP,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid or expired OTP",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Reset password with OTP
+// @route   POST /api/auth/reset-password-otp
+// @access  Public
+router.post("/reset-password-otp", async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const deviceInfo = getDeviceInfo(req);
+    const ipAddress = getIpAddress(req);
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "Email, OTP, and new password are required",
+      });
+    }
+
+    // Hash the provided OTP
+    const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
+    const user = await User.findOne({
+      email,
+      passwordResetOTP: hashedOTP,
+      passwordResetExpires: { $gt: Date.now() },
+    }).select("+password");
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid or expired OTP",
+      });
+    }
+
+    // Check if new password is same as old password
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must be different from current password",
+      });
+    }
+
+    // Set new password
+    user.password = newPassword;
+    user.passwordResetOTP = undefined;
+    user.passwordResetExpires = undefined;
+
+    // Clear all refresh tokens for security
+    user.refreshTokens = [];
+
+    await user.save();
+
+    // Send password change notification email
+    const emailSent = await sendPasswordChangeNotification(user.email);
+    if (!emailSent) {
+      console.error('Failed to send password reset notification email');
+      // Continue with the process even if email fails
+    }
+
+    // Log password reset completion
+    await AuditLog.logEvent({
+      userId: user._id,
+      eventType: "password_reset_complete",
+      ipAddress,
+      userAgent: deviceInfo.userAgent,
+      deviceInfo,
+      success: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // @desc    Verify reset token
 // @route   POST /api/auth/verify-reset-token

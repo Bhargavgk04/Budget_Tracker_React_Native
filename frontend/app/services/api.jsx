@@ -116,6 +116,54 @@ export const authAPI = {
       console.error("Logout error:", error);
     }
   },
+
+  sendOTP: async (email) => {
+    try {
+      const response = await apiRequest("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.message || "Failed to send OTP");
+    }
+  },
+
+  verifyOTP: async (email, otp) => {
+    try {
+      const response = await apiRequest("/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, otp }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.message || "OTP verification failed");
+    }
+  },
+
+  resetPasswordWithOTP: async (email, otp, newPassword) => {
+    try {
+      const response = await apiRequest("/auth/reset-password-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.message || "Password reset failed");
+    }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await apiRequest("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.message || "Password change failed");
+    }
+  },
 };
 
 // Transaction API

@@ -172,7 +172,7 @@ const LoginScreen = ({ navigation }) => {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isLoading}
-              className="rounded-2xl overflow-hidden mb-6"
+              className="rounded-2xl overflow-hidden mb-4"
             >
               <LinearGradient
                 colors={isLoading ? ['#9CA3AF', '#6B7280'] : ['#6366F1', '#8B5CF6']}
@@ -182,6 +182,17 @@ const LoginScreen = ({ navigation }) => {
                   {isLoading ? 'Signing In...' : 'Sign In'}
                 </Text>
               </LinearGradient>
+            </TouchableOpacity>
+          </SlideInAnimation>
+
+          <SlideInAnimation direction="up" delay={900}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('ForgotPasswordScreen')}
+              className="items-center mb-4"
+            >
+              <Text className="text-primary font-semibold">
+                Forgot Password?
+              </Text>
             </TouchableOpacity>
           </SlideInAnimation>
         </Animated.View>
