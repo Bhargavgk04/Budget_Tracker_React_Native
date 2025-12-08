@@ -170,45 +170,35 @@ const AddTransactionScreen = ({
         const { MockDataService } = await import("@/services/MockDataService");
         await MockDataService.addTransaction(transactionData);
       } else {
-        // Add transaction with optimistic update (non-blocking)
-        addTransactionToContext(transactionData).then(result => {
-          if (!result.success) {
-            // Show error if server request fails
-            Alert.alert("Error", result.error || "Failed to save transaction");
-          } else {
-            // Handle split creation in background if configured
-            const createdId = result.data?._id || result.data?.id;
-            if (splitConfig && createdId) {
-              import("@/services/SplitService").then(({ default: SplitService }) => {
-                SplitService.createSplit(createdId, splitConfig).catch(e => {
-                  console.warn('Failed to create split:', e);
-                });
-              });
-            }
+        // Wait for server response
+        const result = await addTransactionToContext(transactionData);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to add transaction');
+        }
+        
+        // Handle split creation if configured
+        const createdId = result.data?._id || result.data?.id;
+        if (splitConfig && createdId) {
+          try {
+            const SplitService = (await import("@/services/SplitService")).default;
+            await SplitService.createSplit(createdId, splitConfig);
+          } catch (e) {
+            console.warn('Failed to create split:', e);
           }
-        }).catch(error => {
-          console.error("Failed to add transaction:", error);
-          Alert.alert("Error", "Failed to add transaction. Please try again.");
-        });
+        }
       }
 
-      // Show success feedback
-      Alert.alert(
-        "Success",
-        `${type === "income" ? "Income" : "Expense"} of ₹${parseFloat(amount).toFixed(2)} added successfully`,
-        [{ text: "OK" }]
-      );
-      
-      // Reset form immediately
+      // Reset form
       setAmount("");
       setCategory("");
       setNotes("");
       setSelectedFriends([]);
       setShowSplitConfig(false);
       setSplitConfig(null);
-      setIsLoading(false);
       
-      // Navigate back immediately (optimistic)
+      // Show success and navigate back
+      Alert.alert("Success", "Transaction added successfully");
       navigation.goBack();
       
     } catch (error) {

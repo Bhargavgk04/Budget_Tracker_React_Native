@@ -12,7 +12,6 @@ const authRoutes = require("./routes/auth");
 const transactionRoutes = require("./routes/transactions");
 const categoryRoutes = require("./routes/categories");
 const budgetRoutes = require("./routes/budgets");
-const analyticsRoutes = require("./routes/analytics");
 const userRoutes = require("./routes/users");
 const friendRoutes = require("./routes/friends");
 const splitRoutes = require("./routes/splits");
@@ -135,7 +134,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/transactions", authMiddleware, transactionRoutes);
 app.use("/api/categories", authMiddleware, categoryRoutes);
 app.use("/api/budgets", authMiddleware, budgetRoutes);
-app.use("/api/analytics", authMiddleware, analyticsRoutes);
 app.use("/api/users", authMiddleware, userRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
 app.use("/api/friends", authMiddleware, friendRoutes);
@@ -153,7 +151,6 @@ app.get("/", (req, res) => {
       health: "/health",
       auth: "/api/auth",
       transactions: "/api/transactions",
-      analytics: "/api/analytics",
       budgets: "/api/budgets",
       categories: "/api/categories",
       users: "/api/users",

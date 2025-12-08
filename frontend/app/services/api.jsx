@@ -58,9 +58,7 @@ const apiRequest = async (endpoint, options = {}, invalidateCache = false) => {
 const invalidateRelatedCache = async (endpoint) => {
   const cacheKeys = [
     'transactions_all',
-    'transactions_stats', 
-    'analytics_category-breakdown',
-    'analytics_summary'
+    'transactions_stats'
   ];
   
   for (const key of cacheKeys) {
@@ -203,44 +201,4 @@ export const transactionAPI = {
   },
 };
 
-// Analytics API
-export const analyticsAPI = {
-  getSummary: async (userId) => {
-    try {
-      const response = await apiRequest("/transactions/stats");
-      
-      // Transform backend response to match expected format
-      const stats = response.data || {};
-      return {
-        data: {
-          income: stats.income?.total || 0,
-          expense: stats.expense?.total || 0,
-          savings: stats.balance || 0,
-          totalTransactions: stats.totalTransactions || 0,
-        },
-      };
-    } catch (error) {
-      console.error("Error getting summary:", error);
-      return {
-        data: {
-          income: 0,
-          expense: 0,
-          savings: 0,
-          totalTransactions: 0,
-        },
-      };
-    }
-  },
-
-  getCategoryBreakdown: async (userId) => {
-    try {
-      const response = await apiRequest("/analytics/category-breakdown");
-      return { data: response.data || [] };
-    } catch (error) {
-      console.error("Error getting category breakdown:", error);
-      return { data: [] };
-    }
-  },
-};
-
-export default { authAPI, transactionAPI, analyticsAPI };
+export default { authAPI, transactionAPI };

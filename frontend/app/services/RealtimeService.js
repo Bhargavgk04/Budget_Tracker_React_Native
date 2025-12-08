@@ -1,5 +1,5 @@
 import { AppState, AppStateStatus } from 'react-native';
-import { transactionAPI, analyticsAPI } from './api';
+import { transactionAPI } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../utils/constants';
 
@@ -114,23 +114,12 @@ class RealtimeService {
 
       console.log('Syncing data for user:', userId);
       
-      // Sync transactions and analytics in parallel
-      const [transactionsResponse, summaryResponse, categoryResponse] = await Promise.allSettled([
-        transactionAPI.getAll(userId),
-        analyticsAPI.getSummary(userId),
-        analyticsAPI.getCategoryBreakdown(userId)
-      ]);
+      // Sync transactions only
+      const transactionsResponse = await transactionAPI.getAll(userId);
 
       const syncData = {
         timestamp: now,
-        transactions: transactionsResponse.status === 'fulfilled' ? transactionsResponse.value.data : [],
-        summary: summaryResponse.status === 'fulfilled' ? summaryResponse.value.data : {},
-        categoryBreakdown: categoryResponse.status === 'fulfilled' ? categoryResponse.value.data : [],
-        errors: [
-          transactionsResponse.status === 'rejected' ? transactionsResponse.reason : null,
-          summaryResponse.status === 'rejected' ? summaryResponse.reason : null,
-          categoryResponse.status === 'rejected' ? categoryResponse.reason : null
-        ].filter(Boolean)
+        transactions: transactionsResponse.data || [],
       };
 
       // Notify subscribers with updated data
