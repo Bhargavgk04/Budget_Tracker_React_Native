@@ -19,8 +19,24 @@ import CountUpAnimation from '../components/animations/CountUpAnimation';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, updateProfilePicture } = useAuth();
-  const { summary, refreshData } = useTransactions();
+  const { transactions, refreshData } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Calculate summary from transactions
+  const summary = React.useMemo(() => {
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const expense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    return {
+      income,
+      expense,
+      totalTransactions: transactions.length
+    };
+  }, [transactions]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

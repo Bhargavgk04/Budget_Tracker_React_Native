@@ -171,6 +171,7 @@ export type MainTabParamList = {
 
 export type HomeStackParamList = {
   Dashboard: undefined;
+  Transactions: undefined;
   TransactionDetails: { transactionId: string };
   CategoryDetails: { categoryId: string };
 };

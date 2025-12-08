@@ -8,7 +8,6 @@ export class TransactionService {
   private static cacheConfig = {
     list: { key: 'transactions_list', ttl: 300000 }, // 5 minutes
     details: { key: 'transaction_details', ttl: 600000 }, // 10 minutes
-    analytics: { key: 'transaction_analytics', ttl: 900000 }, // 15 minutes
   };
 
   // Get all transactions with pagination and filtering
@@ -179,50 +178,7 @@ export class TransactionService {
     }
   }
 
-  // Get transaction analytics
-  static async getTransactionAnalytics(
-    startDate: Date,
-    endDate: Date,
-    groupBy: 'day' | 'week' | 'month' = 'day'
-  ): Promise<{
-    totalIncome: number;
-    totalExpenses: number;
-    balance: number;
-    categoryBreakdown: Array<{
-      category: string;
-      amount: number;
-      percentage: number;
-    }>;
-    trends: Array<{
-      date: string;
-      income: number;
-      expenses: number;
-    }>;
-  }> {
-    try {
-      const params = new URLSearchParams({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        groupBy,
-      });
-
-      const endpoint = `${API_ENDPOINTS.ANALYTICS.SUMMARY}?${params.toString()}`;
-      const cacheKey = `${this.cacheConfig.analytics.key}_${params.toString()}`;
-
-      const response = await apiService.get(
-        endpoint,
-        { ...this.cacheConfig.analytics, key: cacheKey }
-      );
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch analytics');
-      }
-
-      return response.data;
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : 'Failed to fetch analytics');
-    }
-  }
+  // Analytics removed - calculate client-side from transactions if needed
 
   // Export transactions
   static async exportTransactions(
@@ -361,7 +317,7 @@ export class TransactionService {
     try {
       const cacheStatus = await apiService.getCacheStatus();
       const transactionCacheKeys = cacheStatus.keys.filter(key => 
-        key.includes('transactions') || key.includes('analytics') || key.includes('recent')
+        key.includes('transactions') || key.includes('recent')
       );
 
       // Clear specific caches (this would need to be implemented in ApiService)

@@ -21,10 +21,27 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const DashboardScreen = () => {
   const { user } = useAuth();
-  const { transactions, summary, refreshData, isLoading } = useTransactions();
+  const { transactions, refreshData, isLoading } = useTransactions();
   const navigation = useNavigation();
   const [showMenu, setShowMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Calculate summary from transactions
+  const summary = React.useMemo(() => {
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const expense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    return {
+      income,
+      expense,
+      savings: income - expense,
+      totalTransactions: transactions.length
+    };
+  }, [transactions]);
 
   // Animation values
   const headerOpacity = useSharedValue(0);

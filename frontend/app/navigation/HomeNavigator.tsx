@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import DashboardScreen from '@/screens/dashboard/DashboardScreen';
+import TransactionListScreen from '@/screens/transactions/TransactionListScreen';
 import TransactionDetailsScreen from '@/screens/transactions/TransactionDetailsScreen';
 import CategoryDetailsScreen from '@/screens/categories/CategoryDetailsScreen';
 import { defaultScreenOptions, screenTransitions } from './transitions';
@@ -15,6 +16,14 @@ export default function HomeNavigator() {
         name="Dashboard" 
         component={DashboardScreen}
         options={screenTransitions.Dashboard}
+      />
+      <Stack.Screen 
+        name="Transactions" 
+        component={TransactionListScreen}
+        options={{
+          ...screenTransitions.TransactionList,
+          title: 'All Transactions',
+        }}
       />
       <Stack.Screen 
         name="TransactionDetails"

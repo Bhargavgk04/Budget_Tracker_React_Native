@@ -81,26 +81,49 @@ function DashboardScreen({ navigation }: any) {
         // Use real API for actual users
         const period = DataTransformUtils.generateTimePeriod(selectedPeriod);
         
-        const [analyticsData, transactionsData] = await Promise.all([
-          TransactionService.getTransactionAnalytics(
-            period.startDate,
-            period.endDate
-          ),
-          TransactionService.getRecentTransactions(5),
-        ]);
+        // Get transactions
+        const transactionsData = await TransactionService.getRecentTransactions(5);
+        
+        // Get all transactions for the period (using pagination with high limit)
+        const allTransactionsResponse = await TransactionService.getTransactions(1, 1000, {
+          startDate: period.startDate,
+          endDate: period.endDate,
+        });
+        
+        const allTransactions = allTransactionsResponse.data || [];
+        
+        // Calculate summary from transactions
+        const totalIncome = allTransactions
+          .filter(t => t.type === 'income')
+          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        
+        const totalExpenses = allTransactions
+          .filter(t => t.type === 'expense')
+          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        
+        // Calculate category breakdown
+        const categoryMap = new Map<string, number>();
+        allTransactions
+          .filter(t => t.type === 'expense')
+          .forEach(t => {
+            const current = categoryMap.get(t.category) || 0;
+            categoryMap.set(t.category, current + (t.amount || 0));
+          });
+        
+        const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, amount]) => ({
+          category,
+          amount,
+          percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+          color: CHART_COLORS[Math.abs(category.length) % CHART_COLORS.length],
+          icon: 'help' as any,
+        }));
 
         const summaryData: FinancialSummary = {
-          totalIncome: analyticsData.totalIncome,
-          totalExpenses: analyticsData.totalExpenses,
-          balance: analyticsData.balance,
+          totalIncome,
+          totalExpenses,
+          balance: totalIncome - totalExpenses,
           period,
-          categoryBreakdown: analyticsData.categoryBreakdown.map(item => ({
-            category: item.category,
-            amount: (item as any).total ?? (item as any).amount ?? 0,
-            percentage: item.percentage ?? 0,
-            color: CHART_COLORS[Math.abs(item.category.length) % CHART_COLORS.length],
-            icon: 'help',
-          })),
+          categoryBreakdown,
         };
 
         setSummary(summaryData);
@@ -130,9 +153,7 @@ function DashboardScreen({ navigation }: any) {
     navigation.navigate('Transactions');
   };
 
-  const navigateToAnalytics = () => {
-    navigation.navigate('Analytics');
-  };
+
 
   const renderSummaryCard = () => (
     <Animated.View entering={FadeInUp.delay(100)} style={styles.summaryCard}>
@@ -214,9 +235,7 @@ function DashboardScreen({ navigation }: any) {
       <Animated.View entering={FadeInDown.delay(200)} style={styles.chartCard}>
         <View style={styles.chartHeader}>
           <Text style={styles.chartTitle}>Expense Categories</Text>
-          <TouchableOpacity onPress={navigateToAnalytics}>
-            <MaterialIcons name="chevron-right" size={24} color={theme.colors.onSurface + '60'} />
-          </TouchableOpacity>
+
         </View>
         
         <PieChart

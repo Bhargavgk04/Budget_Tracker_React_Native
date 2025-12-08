@@ -111,7 +111,7 @@ export const TransactionProvider = ({ children }) => {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
+  }, [user?._id, loadTransactions]);
 
   // Simple transaction operations - wait for server response
   const addTransaction = useCallback(async (transactionData) => {

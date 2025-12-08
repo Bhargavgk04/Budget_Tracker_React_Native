@@ -181,6 +181,11 @@ export const screenTransitions: Record<string, StackNavigationOptions> = {
     ...customTransitions.fadeTransition,
   },
 
+  // List screens
+  TransactionList: {
+    ...customTransitions.fastSlide,
+  },
+
   // Detail screens
   TransactionDetails: {
     ...customTransitions.scaleTransition,
