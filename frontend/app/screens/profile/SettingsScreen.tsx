@@ -73,9 +73,7 @@ export default function SettingsScreen({ navigation }: any) {
     Alert.alert('Language', 'Language selection will be available in the next update');
   };
 
-  const handleChangePassword = () => {
-    Alert.alert('Change Password', 'Password change feature will be available soon');
-  };
+
 
   const handleBackup = () => {
     Alert.alert('Backup', 'Cloud backup will be available in the next update');
@@ -131,13 +129,6 @@ export default function SettingsScreen({ navigation }: any) {
           type: 'toggle',
           value: biometric,
           onPress: handleBiometricToggle,
-        },
-        {
-          id: 'changePassword',
-          icon: 'lock',
-          title: 'Change Password',
-          type: 'navigation',
-          onPress: handleChangePassword,
         },
       ],
     },

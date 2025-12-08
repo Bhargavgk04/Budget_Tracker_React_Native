@@ -98,9 +98,42 @@ export const TransactionProvider = ({ children }) => {
     }
   }, [user?._id]);
 
+  // Enhanced refresh function with debouncing - DEFINED FIRST
+  const refreshData = useCallback(async (force = false) => {
+    if (!user?._id) {
+      console.log('[TransactionContext] No user, skipping refresh');
+      return;
+    }
+    
+    const now = Date.now();
+    // Prevent excessive refresh calls (minimum 2 seconds between calls)
+    if (!force && now - lastRefreshTime.current < 2000) {
+      console.log('[TransactionContext] Refresh throttled, skipping...');
+      return;
+    }
+    
+    lastRefreshTime.current = now;
+    console.log('[TransactionContext] Refreshing data...');
+    
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      await Promise.all([
+        loadTransactions(),
+        loadSummary(),
+        loadCategoryBreakdown()
+      ]);
+      console.log('[TransactionContext] Data refreshed successfully, transactions:', state.transactions.length);
+    } catch (error) {
+      console.error('[TransactionContext] Error refreshing data:', error);
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
+
   // Enhanced transaction operations with auto-refresh
   const addTransaction = useCallback(async (transactionData) => {
-    console.log('Adding transaction with data:', transactionData);
+    console.log('[TransactionContext] Adding transaction with data:', transactionData);
     if (!user?._id) return { success: false, error: 'User not authenticated' };
     try {
       const response = await transactionAPI.create({
@@ -108,7 +141,7 @@ export const TransactionProvider = ({ children }) => {
         userId: user.id || user._id
       });
       
-      console.log('Transaction API response:', response);
+      console.log('[TransactionContext] Transaction API response:', response);
       // Handle both response formats
       const transaction = response.data || response;
       dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
@@ -124,7 +157,7 @@ export const TransactionProvider = ({ children }) => {
       
       return { success: true, data: transaction };
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('[TransactionContext] Error adding transaction:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to add transaction';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       return { success: false, error: errorMessage };
@@ -172,32 +205,6 @@ export const TransactionProvider = ({ children }) => {
       return { success: false, error: error.message };
     }
   }, [loadSummary, loadCategoryBreakdown, refreshData]);
-
-  // Enhanced refresh function with debouncing
-  const refreshData = useCallback(async (force = false) => {
-    if (!user?._id) return;
-    
-    const now = Date.now();
-    // Prevent excessive refresh calls (minimum 2 seconds between calls)
-    if (!force && now - lastRefreshTime.current < 2000) {
-      console.log('Refresh throttled, skipping...');
-      return;
-    }
-    
-    lastRefreshTime.current = now;
-    console.log('Refreshing data...');
-    
-    try {
-      await Promise.all([
-        loadTransactions(),
-        loadSummary(),
-        loadCategoryBreakdown()
-      ]);
-      console.log('Data refreshed successfully');
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    }
-  }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
 
   // Enhanced app state monitoring for auto-refresh
   useEffect(() => {

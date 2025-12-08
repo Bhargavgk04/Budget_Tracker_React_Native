@@ -7,8 +7,6 @@ import SettingsScreen from '@/screens/profile/SettingsScreen';
 import CategoriesScreen from '@/screens/categories/CategoriesScreen';
 import BudgetScreen from '@/screens/budget/BudgetScreen';
 import ExportScreen from '@/screens/export/ExportScreen';
-import ChangePasswordScreen from '@/screens/auth/ChangePasswordScreen';
-import OTPChangePasswordScreen from '@/screens/auth/OTPChangePasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -26,24 +24,6 @@ export default function ProfileNavigator() {
       <Stack.Screen name="Categories" component={CategoriesScreen} />
       <Stack.Screen name="Budget" component={BudgetScreen} />
       <Stack.Screen name="Export" component={ExportScreen} />
-      <Stack.Screen 
-        name="ChangePassword" 
-        component={ChangePasswordScreen}
-        options={{ 
-          headerShown: true,
-          title: 'Change Password',
-          ...TransitionPresets.SlideFromRightIOS
-        }}
-      />
-      <Stack.Screen 
-        name="OTPChangePassword" 
-        component={OTPChangePasswordScreen}
-        options={{ 
-          headerShown: true,
-          title: 'Change Password with OTP',
-          ...TransitionPresets.SlideFromRightIOS
-        }}
-      />
     </Stack.Navigator>
   );
 }

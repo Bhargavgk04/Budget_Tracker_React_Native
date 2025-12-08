@@ -18,11 +18,6 @@ export interface UserProfile {
   };
 }
 
-export interface ChangePasswordData {
-  currentPassword: string;
-  newPassword: string;
-}
-
 export interface ExportData {
   user: UserProfile;
   transactions: any[];
@@ -84,16 +79,6 @@ class UserService {
   static async deleteProfilePicture(): Promise<{ success: boolean }> {
     try {
       const response = await API.delete('/user/profile/picture');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Change password
-  static async changePassword(passwordData: ChangePasswordData): Promise<{ success: boolean }> {
-    try {
-      const response = await API.put('/user/change-password', passwordData);
       return response.data;
     } catch (error) {
       throw error;

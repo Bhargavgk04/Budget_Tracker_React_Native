@@ -104,7 +104,6 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   refreshAuthToken: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
   clearError: () => void;
@@ -361,20 +360,6 @@ class AuthService {
     'refresh-token'
   );
 
-  static changePassword = withPerformanceMonitoring(
-    async (currentPassword: string, newPassword: string): Promise<void> => {
-      performanceMonitor.startApiCall('change-password');
-      const response = await this.makeRequest<void>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
-        method: 'POST',
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to change password');
-      }
-    },
-    'change-password'
-  );
 }
 
 // Auth provider component
@@ -512,33 +497,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 
 
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-    try {
-      if (!state.token) {
-        throw new Error('Not authenticated');
-      }
-
-      // Call your API to change password
-      await AuthService.changePassword(currentPassword, newPassword);
-
-      // Update the token if the backend returns a new one
-      // const data = await response.json();
-      // if (data.token) {
-      //   await JWTManager.storeTokens(data.token, state.refreshToken || '');
-      //   dispatch({
-      //     type: 'TOKEN_REFRESH',
-      //     payload: {
-      //       token: data.token,
-      //       refreshToken: state.refreshToken || '',
-      //     },
-      //   });
-      // }
-    } catch (error) {
-      console.error('Change password error:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to change password');
-    }
-  };
-
   const refreshAuthToken = async (): Promise<void> => {
     try {
       if (!state.refreshToken) {
@@ -648,7 +606,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
-    changePassword,
     refreshAuthToken,
     updateProfile,
     clearError,

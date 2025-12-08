@@ -248,7 +248,7 @@ const ProfileScreen = ({ navigation }) => {
                     Alert.alert('Personal Information', 'Edit your profile details here.');
                     break;
                   case 'security':
-                    navigation.navigate('ChangePasswordScreen');
+                    Alert.alert('Security', 'Security settings will be available soon.');
                     break;
                   case 'notifications':
                     Alert.alert('Notification Settings', 'Customize your notification preferences.');

@@ -123,17 +123,6 @@ const userSchema = new mongoose.Schema({
     }
   }],
 
-  emailVerificationToken: String,
-  emailVerified: {
-    type: Boolean,
-    default: false
-  },
-  passwordResetOTP: String,
-  passwordResetOTPExpires: Date,
-  passwordResetOTPAttempts: {
-    type: Number,
-    default: 0
-  },
   lastLogin: Date,
   loginAttempts: {
     type: Number,
@@ -319,59 +308,6 @@ userSchema.methods.verifyBackupCode = function(code) {
   
   return false;
 };
-
-// Method to generate password reset OTP
-userSchema.methods.generatePasswordResetOTP = function() {
-  const crypto = require('crypto');
-  // Generate 6-digit OTP
-  const otp = crypto.randomInt(100000, 999999).toString();
-  
-  // Hash OTP before storing
-  this.passwordResetOTP = crypto.createHash('sha256').update(otp).digest('hex');
-  this.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  this.passwordResetOTPAttempts = 0;
-  
-  return otp; // Return plain OTP to send via email
-};
-
-// Method to verify password reset OTP
-userSchema.methods.verifyPasswordResetOTP = function(otp) {
-  const crypto = require('crypto');
-  
-  // Check if OTP exists and not expired
-  if (!this.passwordResetOTP || !this.passwordResetOTPExpires) {
-    return { valid: false, message: 'No OTP found. Please request a new one.' };
-  }
-  
-  if (Date.now() > this.passwordResetOTPExpires) {
-    return { valid: false, message: 'OTP has expired. Please request a new one.' };
-  }
-  
-  // Check attempts
-  if (this.passwordResetOTPAttempts >= 5) {
-    return { valid: false, message: 'Too many failed attempts. Please request a new OTP.' };
-  }
-  
-  // Hash provided OTP and compare
-  const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
-  
-  if (hashedOTP === this.passwordResetOTP) {
-    return { valid: true, message: 'OTP verified successfully' };
-  } else {
-    this.passwordResetOTPAttempts += 1;
-    return { valid: false, message: 'Invalid OTP. Please try again.' };
-  }
-};
-
-// Method to clear password reset OTP
-userSchema.methods.clearPasswordResetOTP = function() {
-  this.passwordResetOTP = undefined;
-  this.passwordResetOTPExpires = undefined;
-  this.passwordResetOTPAttempts = 0;
-  return this.save();
-};
-
-
 
 // Static method to clean up expired refresh tokens
 userSchema.statics.cleanupExpiredTokens = function() {

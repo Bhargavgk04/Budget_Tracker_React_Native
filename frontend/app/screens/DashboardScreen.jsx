@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ import AnimatedCard from '../components/animations/AnimatedCard';
 import CountUpAnimation from '../components/animations/CountUpAnimation';
 import MenuModal from '../components/common/MenuModal';
 import RefreshControl from '../components/common/RefreshControl';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const DashboardScreen = () => {
   const { user } = useAuth();
@@ -28,6 +28,14 @@ const DashboardScreen = () => {
 
   // Animation values
   const headerOpacity = useSharedValue(0);
+
+  // Auto-refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[DashboardScreen] Screen focused, refreshing data...');
+      refreshData(true);
+    }, [refreshData])
+  );
 
   // Handle pull-to-refresh
   const handleRefresh = async () => {
@@ -42,8 +50,6 @@ const DashboardScreen = () => {
   };
 
   useEffect(() => {
-    // Data is already loaded by TransactionContext, no need to call refreshData() here
-    
     // Simple header animation
     headerOpacity.value = withTiming(1, { 
       duration: 400,

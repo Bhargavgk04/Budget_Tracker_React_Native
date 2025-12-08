@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import TabNavigator from './TabNavigator';
 import LoadingScreen from '../screens/LoadingScreen';
-import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -18,10 +17,7 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <>
-          <Stack.Screen name="Main" component={TabNavigator} />
-          <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
-        </>
+        <Stack.Screen name="Main" component={TabNavigator} />
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       )}

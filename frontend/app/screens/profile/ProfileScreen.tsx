@@ -120,13 +120,7 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
-  const handleChangePassword = () => {
-    Alert.alert(
-      'Change Password',
-      'Password change feature will be available soon.',
-      [{ text: 'OK' }]
-    );
-  };
+
 
   const handleExportData = () => {
     Alert.alert(
@@ -315,15 +309,6 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={[styles.actionsCard, { backgroundColor: theme.colors.surface }]}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Account Settings</Text>
             
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.primary + '10' }]}
-              onPress={handleChangePassword}
-            >
-              <MaterialIcons name="lock" size={20} color={theme.colors.primary} />
-              <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>Change Password</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.colors.primary + '66'} />
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: theme.colors.primary + '10' }]}
               onPress={handleExportData}

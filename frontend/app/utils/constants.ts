@@ -137,10 +137,6 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: '/auth/verify-email',
     REFRESH_TOKEN: '/auth/refresh-token',
     CHANGE_PASSWORD: '/auth/change-password',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    VERIFY_RESET_OTP: '/auth/verify-reset-otp',
-    RESET_PASSWORD: '/auth/reset-password',
-    RESEND_RESET_OTP: '/auth/resend-reset-otp',
   },
   TRANSACTIONS: {
     LIST: '/transactions',

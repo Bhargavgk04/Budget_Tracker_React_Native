@@ -17,10 +17,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { useTransactions } from "@/hooks/useTransactions";
 import Button from "@/components/common/Button";
 import { formatCurrency } from "@/utils/formatting";
 import { ValidationUtils } from "@/utils/validation";
-import TransactionService from "@/services/TransactionService";
 import { DEFAULT_CATEGORIES, FEATURE_FLAGS } from "@/utils/constants";
 import FriendSelector from "@/components/friends/FriendSelector";
 import SplitConfig from "@/components/splits/SplitConfig";
@@ -43,6 +43,7 @@ const AddTransactionScreen = ({
 }: AddTransactionScreenProps) => {
   const theme = useTheme();
   const { user } = useAuth();
+  const { addTransaction: addTransactionToContext } = useTransactions();
   
   // Debug mount and initial params
   useEffect(() => {
@@ -168,10 +169,15 @@ const AddTransactionScreen = ({
         const { MockDataService } = await import("@/services/MockDataService");
         await MockDataService.addTransaction(transactionData);
       } else {
-        const created = await TransactionService.createTransaction(transactionData);
+        // Use context to add transaction - this updates all screens automatically
+        const result = await addTransactionToContext(transactionData);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to add transaction');
+        }
         
         // Handle split creation if configured
-        const createdId = (created as any)?._id || (created as any)?.id;
+        const createdId = result.data?._id || result.data?.id;
         if (splitConfig && createdId) {
           try {
             const SplitService = (await import("@/services/SplitService")).default;

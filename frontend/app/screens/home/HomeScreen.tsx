@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/hooks/useTheme';
 import { useTransactions } from '@/hooks/useTransactions';
-import TransactionService from '@/services/TransactionService';
 
 const { width } = Dimensions.get('window');
 
@@ -29,9 +29,9 @@ interface RecentTransaction {
 
 export default function HomeScreen({ navigation }: any) {
   const theme = useTheme();
-  const { transactions, loadTransactions } = useTransactions();
+  const { transactions, refreshData, isLoading: transactionsLoading } = useTransactions();
   
-  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [monthlyStats, setMonthlyStats] = useState({
     income: 0,
     expense: 0,
@@ -82,27 +82,31 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        await loadTransactions();
-        await calculateMonthlyStats();
-      } catch (error) {
-        console.error('[HomeScreen] Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [loadTransactions]);
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[HomeScreen] Screen focused, reloading transactions...');
+      refreshData(true);
+    }, [refreshData])
+  );
 
   // Recalculate stats when transactions change
   useEffect(() => {
+    console.log('[HomeScreen] Transactions changed, count:', transactions.length);
     calculateMonthlyStats();
   }, [transactions]);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData(true);
+    } catch (error) {
+      console.error('[HomeScreen] Error refreshing:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   const quickActions: QuickAction[] = [
     { id: '1', icon: 'add-circle', label: 'Add Transaction', color: '#3B82F6', route: 'AddTransaction' },
@@ -316,7 +320,7 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {isLoading ? (
+      {transactionsLoading && transactions.length === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={{ marginTop: 16, color: theme.colors.textSecondary }}>Loading your data...</Text>
@@ -357,7 +361,17 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <View style={styles.quickActionsGrid}>
@@ -409,45 +423,60 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.seeAllButton}>See All</Text>
           </TouchableOpacity>
         </View>
-        {recentTransactions.map((transaction, index) => (
-          <Animated.View
-            key={transaction.id}
-            entering={FadeInDown.delay(350 + index * 50)}
-            style={styles.transactionCard}
+        {recentTransactions.length === 0 ? (
+          <Animated.View 
+            entering={FadeInDown.delay(350)}
+            style={[styles.transactionCard, { justifyContent: 'center', alignItems: 'center', padding: theme.spacing.xl }]}
           >
-            <View style={styles.transactionLeft}>
-              <View
-                style={[
-                  styles.transactionIconContainer,
-                  {
-                    backgroundColor:
-                      transaction.type === 'expense'
-                        ? '#EF4444' + '20'
-                        : '#10B981' + '20',
-                  },
-                ]}
-              >
-                <MaterialIcons
-                  name={transaction.type === 'expense' ? 'arrow-upward' : 'arrow-downward'}
-                  size={20}
-                  color={transaction.type === 'expense' ? '#EF4444' : '#10B981'}
-                />
-              </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionDescription}>{transaction.description}</Text>
-                <Text style={styles.transactionCategory}>{transaction.category}</Text>
-              </View>
-            </View>
-            <Text
-              style={[
-                styles.transactionAmount,
-                { color: transaction.type === 'expense' ? '#EF4444' : '#10B981' },
-              ]}
-            >
-              {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toLocaleString()}
+            <MaterialIcons name="receipt-long" size={48} color={theme.colors.onSurface + '40'} />
+            <Text style={{ marginTop: theme.spacing.md, color: theme.colors.onSurface + '80', textAlign: 'center' }}>
+              No transactions yet
+            </Text>
+            <Text style={{ marginTop: theme.spacing.xs, color: theme.colors.onSurface + '60', fontSize: 12, textAlign: 'center' }}>
+              Add your first transaction to get started
             </Text>
           </Animated.View>
-        ))}
+        ) : (
+          recentTransactions.map((transaction, index) => (
+            <Animated.View
+              key={transaction.id}
+              entering={FadeInDown.delay(350 + index * 50)}
+              style={styles.transactionCard}
+            >
+              <View style={styles.transactionLeft}>
+                <View
+                  style={[
+                    styles.transactionIconContainer,
+                    {
+                      backgroundColor:
+                        transaction.type === 'expense'
+                          ? '#EF4444' + '20'
+                          : '#10B981' + '20',
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={transaction.type === 'expense' ? 'arrow-upward' : 'arrow-downward'}
+                    size={20}
+                    color={transaction.type === 'expense' ? '#EF4444' : '#10B981'}
+                  />
+                </View>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionDescription}>{transaction.description}</Text>
+                  <Text style={styles.transactionCategory}>{transaction.category}</Text>
+                </View>
+              </View>
+              <Text
+                style={[
+                  styles.transactionAmount,
+                  { color: transaction.type === 'expense' ? '#EF4444' : '#10B981' },
+                ]}
+              >
+                {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toLocaleString()}
+              </Text>
+            </Animated.View>
+          ))
+        )}
       </ScrollView>
         </>
       )}

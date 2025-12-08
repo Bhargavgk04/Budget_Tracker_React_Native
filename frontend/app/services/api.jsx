@@ -141,29 +141,6 @@ export const authAPI = {
     }
   },
 
-  resetPasswordWithOTP: async (email, otp, newPassword) => {
-    try {
-      const response = await apiRequest("/auth/reset-password-otp", {
-        method: "POST",
-        body: JSON.stringify({ email, otp, newPassword }),
-      });
-      return response;
-    } catch (error) {
-      throw new Error(error.message || "Password reset failed");
-    }
-  },
-
-  changePassword: async (currentPassword, newPassword) => {
-    try {
-      const response = await apiRequest("/auth/change-password", {
-        method: "POST",
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      return response;
-    } catch (error) {
-      throw new Error(error.message || "Password change failed");
-    }
-  },
 };
 
 // Transaction API

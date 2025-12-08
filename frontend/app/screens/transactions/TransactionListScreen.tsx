@@ -13,69 +13,39 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
 import { usePerformance } from '@/hooks/usePerformance';
+import { useTransactions } from '@/hooks/useTransactions';
 import { Transaction } from '@/types';
 import { withPerformanceTracking, performanceUtils } from '@/utils/performance';
-import TransactionService from '@/services/TransactionService';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useMemo } from 'react';
 
 function TransactionListScreen({ navigation }: any) {
   const theme = useTheme();
   const { user } = useAuth();
   const { trackCustom } = usePerformance('TransactionListScreen');
+  const { transactions: allTransactions, isLoading, loadTransactions } = useTransactions();
   
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
-  useEffect(() => {
-    loadTransactions();
-  }, [filterType]);
+  // Filter transactions based on type
+  const transactions = useMemo(() => {
+    if (filterType === 'all') return allTransactions;
+    return allTransactions.filter(t => t.type === filterType);
+  }, [allTransactions, filterType]);
 
-  const loadTransactions = async () => {
-    try {
-      setIsLoading(true);
-      const isDemoUser = user?.id === 'demo-user-123';
+  // Reload on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[TransactionListScreen] Screen focused, reloading...');
+      loadTransactions();
+    }, [loadTransactions])
+  );
 
-      if (isDemoUser) {
-        const { MockDataService } = await import('@/services/MockDataService');
-        let data = await MockDataService.getTransactions();
-        
-        if (filterType !== 'all') {
-          data = data.filter(t => t.type === filterType);
-        }
-        
-        setTransactions(data);
-      } else {
-        const response = await TransactionService.getTransactions(1, 50, {
-          type: filterType === 'all' ? undefined : filterType,
-        });
-        const raw = response?.data || [];
-        const mapped = raw.map((t: any) => ({
-          id: t._id || t.id,
-          userId: t.userId?._id || t.userId,
-          amount: t.amount,
-          category: t.category,
-          type: t.type,
-          paymentMode: t.paymentMode,
-          notes: t.notes,
-          date: new Date(t.date),
-          createdAt: new Date(t.createdAt),
-          updatedAt: new Date(t.updatedAt),
-        })) as Transaction[];
-        setTransactions(mapped);
-      }
-    } catch (error) {
-      console.error('Error loading transactions:', error);
-      performanceUtils.notifyError('Failed to load transactions');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    loadTransactions();
+    await loadTransactions();
+    setIsRefreshing(false);
   };
 
   const handleDelete = async (id: string) => {

@@ -184,17 +184,6 @@ const LoginScreen = ({ navigation }) => {
               </LinearGradient>
             </TouchableOpacity>
           </SlideInAnimation>
-
-          <SlideInAnimation direction="up" delay={900}>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('ForgotPasswordScreen')}
-              className="items-center mb-4"
-            >
-              <Text className="text-primary font-semibold">
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-          </SlideInAnimation>
         </Animated.View>
         
         <SlideInAnimation direction="up" delay={900}>

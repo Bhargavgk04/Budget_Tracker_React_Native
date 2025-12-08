@@ -23,27 +23,6 @@ const schemas = {
     appVersion: Joi.string().optional()
   }),
 
-  forgotPassword: Joi.object({
-    email: Joi.string().email().required()
-  }),
-
-  resetPassword: Joi.object({
-    token: Joi.string().required(),
-    newPassword: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
-      .messages({
-        'string.pattern.base': 'Password must contain uppercase, lowercase, number and special character'
-      })
-  }),
-
-  changePassword: Joi.object({
-    currentPassword: Joi.string().required(),
-    newPassword: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
-      .messages({
-        'string.pattern.base': 'Password must contain uppercase, lowercase, number and special character'
-      }),
-    refreshToken: Joi.string().optional()
-  }),
-
   // Transaction schemas
   createTransaction: Joi.object({
     amount: Joi.number().positive().max(999999999).precision(2).required(),
@@ -152,9 +131,6 @@ const validate = (schema, property = 'body') => {
 module.exports = {
   validateRegister: validate(schemas.register),
   validateLogin: validate(schemas.login),
-  validateForgotPassword: validate(schemas.forgotPassword),
-  validateResetPassword: validate(schemas.resetPassword),
-  validateChangePassword: validate(schemas.changePassword),
   validateCreateTransaction: validate(schemas.createTransaction),
   validateUpdateTransaction: validate(schemas.updateTransaction),
   validateCreateCategory: validate(schemas.createCategory),
