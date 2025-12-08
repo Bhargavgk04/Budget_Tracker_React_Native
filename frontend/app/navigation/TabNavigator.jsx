@@ -5,7 +5,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import DashboardScreen from '../screens/DashboardScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
-import AnalyticsScreen from '../screens/AnalyticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddNavigator from './AddNavigator'; // Changed: Import AddNavigator instead
 import { COLORS } from '../utils/constants';
@@ -27,8 +26,6 @@ const MainTabNavigator = () => {
             iconName = 'list';
           } else if (route.name === 'Add') {
             iconName = 'add-circle';
-          } else if (route.name === 'Analytics') {
-            iconName = 'analytics';
           } else if (route.name === 'Profile') {
             iconName = 'person';
           }
@@ -76,7 +73,6 @@ const MainTabNavigator = () => {
           tabBarLabel: 'Add',
         }}
       />
-      <Tab.Screen name="Analytics" component={AnalyticsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

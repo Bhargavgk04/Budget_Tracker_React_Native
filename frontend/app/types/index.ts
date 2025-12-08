@@ -166,7 +166,6 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Add: undefined;
-  Analytics: undefined;
   Profile: undefined;
 };
 
@@ -182,11 +181,7 @@ export type AddStackParamList = {
   RecurringPayment: undefined;
 };
 
-export type AnalyticsStackParamList = {
-  Analytics: undefined;
-  DetailedAnalytics: { period: TimePeriod };
-  Insights: undefined;
-};
+
 
 export type ProfileStackParamList = {
   Profile: undefined;

@@ -176,9 +176,7 @@ export const screenTransitions: Record<string, StackNavigationOptions> = {
   AddTransaction: {
     ...customTransitions.modalSlide,
   },
-  Analytics: {
-    ...customTransitions.fadeTransition,
-  },
+
   Profile: {
     ...customTransitions.fadeTransition,
   },
@@ -190,9 +188,7 @@ export const screenTransitions: Record<string, StackNavigationOptions> = {
   CategoryDetails: {
     ...customTransitions.scaleTransition,
   },
-  DetailedAnalytics: {
-    ...customTransitions.fastSlide,
-  },
+
   Insights: {
     ...customTransitions.fastSlide,
   },

@@ -157,14 +157,8 @@ export const API_ENDPOINTS = {
     CREATE: '/budgets',
     UPDATE: '/budgets/:id',
     DELETE: '/budgets/:id',
-    ANALYTICS: '/budgets/analytics',
   },
-  ANALYTICS: {
-    SUMMARY: '/analytics/summary',
-    TRENDS: '/analytics/trends',
-    INSIGHTS: '/analytics/insights',
-    CATEGORY_BREAKDOWN: '/analytics/category-breakdown',
-  },
+
   USER: {
     PROFILE: '/user/profile',
     UPDATE_PROFILE: '/user/profile',

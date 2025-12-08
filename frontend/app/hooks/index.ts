@@ -3,7 +3,6 @@ export { useAuth } from './useAuth';
 export { useTransactions } from './useTransactions';
 export { useCategories } from './useCategories';
 export { useBudget } from './useBudget';
-export { useAnalytics } from './useAnalytics';
 export { useTheme } from './useTheme';
 export { usePerformance } from './usePerformance';
 

@@ -13,7 +13,6 @@ const MenuModal = ({ visible, onClose, navigation }) => {
   const menuItems = [
     { icon: 'dashboard', title: 'Dashboard', screen: 'Dashboard' },
     { icon: 'list', title: 'Transactions', screen: 'Transactions' },
-    { icon: 'analytics', title: 'Analytics', screen: 'Analytics' },
     { icon: 'person', title: 'Profile', screen: 'Profile' },
     { icon: 'settings', title: 'Settings', action: 'settings' },
     { icon: 'help', title: 'Help & Support', action: 'help' },

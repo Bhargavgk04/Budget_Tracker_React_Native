@@ -110,7 +110,6 @@ export default function HomeScreen({ navigation }: any) {
 
   const quickActions: QuickAction[] = [
     { id: '1', icon: 'add-circle', label: 'Add Transaction', color: '#3B82F6', route: 'AddTransaction' },
-    { id: '2', icon: 'analytics', label: 'Analytics', color: '#8B5CF6', route: 'Analytics' },
     { id: '3', icon: 'category', label: 'Categories', color: '#F59E0B', route: 'Categories' },
     { id: '4', icon: 'account-balance-wallet', label: 'Budget', color: '#10B981', route: 'Budget' },
   ];

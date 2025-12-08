@@ -9,7 +9,6 @@ import { ELEVATION_LEVELS } from '@/utils/constants';
 // Import stack navigators for each tab
 import HomeNavigator from './HomeNavigator';
 import AddNavigator from './AddNavigator';
-import AnalyticsNavigator from './AnalyticsNavigator';
 import ProfileNavigator from './ProfileNavigator';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import { useNavigation } from '@react-navigation/native';
@@ -84,9 +83,6 @@ export default function MainNavigator() {
               case 'Add':
                 iconName = 'add-circle';
                 break;
-              case 'Analytics':
-                iconName = 'analytics';
-                break;
               case 'Profile':
                 iconName = 'person';
                 break;
@@ -122,13 +118,6 @@ export default function MainNavigator() {
           component={AddNavigator}
           options={{
             tabBarLabel: 'Add',
-          }}
-        />
-        <Tab.Screen
-          name="Analytics"
-          component={AnalyticsNavigator}
-          options={{
-            tabBarLabel: 'Analytics',
           }}
         />
         <Tab.Screen
