@@ -154,6 +154,11 @@ class RealtimeService {
   
   // Trigger sync after mutation with slight delay to batch multiple operations
   triggerMutationSync() {
+    if (!this.isRunning) {
+      console.warn('[RealtimeService] Service not running, skipping mutation sync');
+      return;
+    }
+    
     if (this.mutationSyncTimeout) {
       clearTimeout(this.mutationSyncTimeout);
     }

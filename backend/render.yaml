@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        value: mongodb+srv://bhargavkatkam0_db_user:Bhargavk%401104@budget-tracker-prod.fd2ctnp.mongodb.net/
+        sync: false  # Set this as a secret in Render dashboard
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -19,12 +19,12 @@ services:
       - key: FRONTEND_URL
         value: https://budget-tracker-react-native-kjff.onrender.com
       - key: EMAIL_USER
-        value: thakurkakashi@gmail.com
+        sync: false  # Set this as a secret in Render dashboard
       - key: EMAIL_PASS
-        value: xwvg ekaz yvnu vbcl
+        sync: false  # Set this as a secret in Render dashboard
       - key: BREVO_API_KEY
-        sync: false
+        sync: false  # Set this as a secret in Render dashboard
       - key: BREVO_FROM_EMAIL
-        value: thakurkakashi@gmail.com
+        sync: false  # Set this as a secret in Render dashboard
     healthCheckPath: /health
     autoDeploy: true

@@ -26,21 +26,53 @@ const transactionReducer = (state, action) => {
     case 'SET_TRANSACTIONS':
       return { ...state, transactions: action.payload, isLoading: false };
     case 'ADD_TRANSACTION':
+      // Optimistically update summary when adding transaction
+      const newTransaction = action.payload;
+      const updatedSummary = { ...state.summary };
+      
+      if (newTransaction.type === 'income') {
+        updatedSummary.income += newTransaction.amount || 0;
+      } else if (newTransaction.type === 'expense') {
+        updatedSummary.expense += newTransaction.amount || 0;
+      }
+      updatedSummary.savings = updatedSummary.income - updatedSummary.expense;
+      updatedSummary.totalTransactions = (updatedSummary.totalTransactions || 0) + 1;
+      
       return {
         ...state,
         transactions: [action.payload, ...state.transactions],
+        summary: updatedSummary,
       };
     case 'UPDATE_TRANSACTION':
       return {
         ...state,
-        transactions: state.transactions.map(t =>
-          t.id === action.payload.id ? action.payload : t
-        ),
+        transactions: state.transactions.map(t => {
+          // Handle both regular updates and optimistic update replacements
+          if (t.id === action.payload.id || t._id === action.payload.id) {
+            return { ...t, ...action.payload };
+          }
+          return t;
+        }),
       };
     case 'DELETE_TRANSACTION':
+      // Optimistically update summary when deleting transaction
+      const deletedTransaction = state.transactions.find(t => t.id === action.payload);
+      const deletedSummary = { ...state.summary };
+      
+      if (deletedTransaction) {
+        if (deletedTransaction.type === 'income') {
+          deletedSummary.income -= deletedTransaction.amount || 0;
+        } else if (deletedTransaction.type === 'expense') {
+          deletedSummary.expense -= deletedTransaction.amount || 0;
+        }
+        deletedSummary.savings = deletedSummary.income - deletedSummary.expense;
+        deletedSummary.totalTransactions = Math.max(0, (deletedSummary.totalTransactions || 0) - 1);
+      }
+      
       return {
         ...state,
         transactions: state.transactions.filter(t => t.id !== action.payload),
+        summary: deletedSummary,
       };
     case 'SET_SUMMARY':
       return { ...state, summary: action.payload };
@@ -150,11 +182,27 @@ export const TransactionProvider = ({ children }) => {
     }
   }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
 
-  // Enhanced transaction operations with auto-refresh
+  // Enhanced transaction operations with optimistic updates
   const addTransaction = useCallback(async (transactionData) => {
     console.log('[TransactionContext] Adding transaction with data:', transactionData);
     if (!user?._id) return { success: false, error: 'User not authenticated' };
+    
+    // Create optimistic transaction with temporary ID
+    const optimisticTransaction = {
+      ...transactionData,
+      id: `temp-${Date.now()}`,
+      _id: `temp-${Date.now()}`,
+      userId: user.id || user._id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isOptimistic: true // Flag to identify optimistic updates
+    };
+    
+    // Immediately update UI (optimistic update)
+    dispatch({ type: 'ADD_TRANSACTION', payload: optimisticTransaction });
+    
     try {
+      // Send to server in background
       const response = await transactionAPI.create({
         ...transactionData,
         userId: user.id || user._id
@@ -162,15 +210,25 @@ export const TransactionProvider = ({ children }) => {
       
       console.log('[TransactionContext] Transaction API response:', response);
       // Handle both response formats
-      const transaction = response.data || response;
-      dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
+      const serverTransaction = response.data || response;
+      
+      // Replace optimistic transaction with server response
+      dispatch({ type: 'UPDATE_TRANSACTION', payload: { 
+        id: optimisticTransaction.id, 
+        ...serverTransaction,
+        isOptimistic: false
+      }});
       
       // Trigger a batched sync via RealtimeService
       realtimeService.triggerMutationSync();
       
-      return { success: true, data: transaction };
+      return { success: true, data: serverTransaction };
     } catch (error) {
       console.error('[TransactionContext] Error adding transaction:', error);
+      
+      // Remove optimistic transaction on error
+      dispatch({ type: 'DELETE_TRANSACTION', payload: optimisticTransaction.id });
+      
       const errorMessage = error.response?.data?.error || error.message || 'Failed to add transaction';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       return { success: false, error: errorMessage };

@@ -74,6 +74,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true,
     optionsSuccessStatus: 200,
+    maxAge: 86400, // Cache preflight for 24 hours
   })
 );
 
@@ -86,7 +87,6 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false },
 });
 
 const authLimiter = rateLimit({
@@ -97,7 +97,13 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false },
+});
+
+// Request ID middleware for debugging
+app.use((req, res, next) => {
+  req.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  res.setHeader('X-Request-ID', req.id);
+  next();
 });
 
 // Middleware
@@ -110,10 +116,14 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/", limiter);
 app.use("/api/auth/", authLimiter);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "OK",
+// Health check endpoint with database status
+app.get("/health", async (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const status = dbStatus === 'connected' ? 200 : 503;
+  
+  res.status(status).json({
+    status: dbStatus === 'connected' ? "OK" : "DEGRADED",
+    database: dbStatus,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development",
@@ -176,10 +186,7 @@ const connectDB = async () => {
       throw new Error("MongoDB URI is not defined in environment variables");
     }
 
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(mongoURI);
 
     console.log("✅ MongoDB Connected Successfully");
     console.log(`📊 Database: ${mongoose.connection.name}`);
