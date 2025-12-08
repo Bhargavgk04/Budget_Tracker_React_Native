@@ -24,10 +24,12 @@ const transactionReducer = (state, action) => {
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_TRANSACTIONS':
+      console.log('[TransactionContext] SET_TRANSACTIONS:', action.payload.length, 'transactions');
       return { ...state, transactions: action.payload, isLoading: false };
     case 'ADD_TRANSACTION':
       // Optimistically update summary when adding transaction
       const newTransaction = action.payload;
+      console.log('[TransactionContext] ADD_TRANSACTION:', newTransaction.id, 'isOptimistic:', newTransaction.isOptimistic);
       const updatedSummary = { ...state.summary };
       
       if (newTransaction.type === 'income') {
@@ -38,9 +40,12 @@ const transactionReducer = (state, action) => {
       updatedSummary.savings = updatedSummary.income - updatedSummary.expense;
       updatedSummary.totalTransactions = (updatedSummary.totalTransactions || 0) + 1;
       
+      const newTransactions = [action.payload, ...state.transactions];
+      console.log('[TransactionContext] Total transactions after ADD:', newTransactions.length);
+      
       return {
         ...state,
-        transactions: [action.payload, ...state.transactions],
+        transactions: newTransactions,
         summary: updatedSummary,
       };
     case 'UPDATE_TRANSACTION':
@@ -56,10 +61,12 @@ const transactionReducer = (state, action) => {
       };
     case 'DELETE_TRANSACTION':
       // Optimistically update summary when deleting transaction
+      console.log('[TransactionContext] DELETE_TRANSACTION:', action.payload);
       const deletedTransaction = state.transactions.find(t => t.id === action.payload);
       const deletedSummary = { ...state.summary };
       
       if (deletedTransaction) {
+        console.log('[TransactionContext] Found transaction to delete:', deletedTransaction.id);
         if (deletedTransaction.type === 'income') {
           deletedSummary.income -= deletedTransaction.amount || 0;
         } else if (deletedTransaction.type === 'expense') {
@@ -67,11 +74,16 @@ const transactionReducer = (state, action) => {
         }
         deletedSummary.savings = deletedSummary.income - deletedSummary.expense;
         deletedSummary.totalTransactions = Math.max(0, (deletedSummary.totalTransactions || 0) - 1);
+      } else {
+        console.log('[TransactionContext] Transaction not found for deletion');
       }
+      
+      const remainingTransactions = state.transactions.filter(t => t.id !== action.payload);
+      console.log('[TransactionContext] Total transactions after DELETE:', remainingTransactions.length);
       
       return {
         ...state,
-        transactions: state.transactions.filter(t => t.id !== action.payload),
+        transactions: remainingTransactions,
         summary: deletedSummary,
       };
     case 'SET_SUMMARY':
@@ -188,10 +200,11 @@ export const TransactionProvider = ({ children }) => {
     if (!user?._id) return { success: false, error: 'User not authenticated' };
     
     // Create optimistic transaction with temporary ID
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimisticTransaction = {
       ...transactionData,
-      id: `temp-${Date.now()}`,
-      _id: `temp-${Date.now()}`,
+      id: tempId,
+      _id: tempId,
       userId: user.id || user._id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -199,10 +212,11 @@ export const TransactionProvider = ({ children }) => {
     };
     
     // Immediately update UI (optimistic update)
+    console.log('[TransactionContext] Adding optimistic transaction:', tempId);
     dispatch({ type: 'ADD_TRANSACTION', payload: optimisticTransaction });
     
     try {
-      // Send to server in background
+      // Send to server
       const response = await transactionAPI.create({
         ...transactionData,
         userId: user.id || user._id
@@ -212,22 +226,29 @@ export const TransactionProvider = ({ children }) => {
       // Handle both response formats
       const serverTransaction = response.data || response;
       
-      // Replace optimistic transaction with server response
-      dispatch({ type: 'UPDATE_TRANSACTION', payload: { 
-        id: optimisticTransaction.id, 
+      // Remove optimistic transaction
+      console.log('[TransactionContext] Removing optimistic transaction:', tempId);
+      dispatch({ type: 'DELETE_TRANSACTION', payload: tempId });
+      
+      // Add real transaction from server
+      console.log('[TransactionContext] Adding server transaction:', serverTransaction.id || serverTransaction._id);
+      dispatch({ type: 'ADD_TRANSACTION', payload: {
         ...serverTransaction,
+        id: serverTransaction.id || serverTransaction._id,
         isOptimistic: false
       }});
       
-      // Trigger a batched sync via RealtimeService
-      realtimeService.triggerMutationSync();
+      // Trigger a delayed sync to get updated analytics
+      setTimeout(() => {
+        realtimeService.triggerMutationSync();
+      }, 1000);
       
       return { success: true, data: serverTransaction };
     } catch (error) {
       console.error('[TransactionContext] Error adding transaction:', error);
       
       // Remove optimistic transaction on error
-      dispatch({ type: 'DELETE_TRANSACTION', payload: optimisticTransaction.id });
+      dispatch({ type: 'DELETE_TRANSACTION', payload: tempId });
       
       const errorMessage = error.response?.data?.error || error.message || 'Failed to add transaction';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
@@ -302,9 +323,24 @@ export const TransactionProvider = ({ children }) => {
       }
 
       // Update state with synced data
+      console.log('[TransactionContext] Real-time sync received:', {
+        transactions: syncData.transactions?.length,
+        hasSummary: !!syncData.summary,
+        hasCategoryBreakdown: !!syncData.categoryBreakdown,
+        currentTransactions: state.transactions.length
+      });
+      
+      // Only update transactions if we don't have more locally (prevents overwriting optimistic updates)
       if (syncData.transactions) {
-        dispatch({ type: 'SET_TRANSACTIONS', payload: syncData.transactions });
+        if (syncData.transactions.length >= state.transactions.length) {
+          console.log('[TransactionContext] Updating transactions from sync');
+          dispatch({ type: 'SET_TRANSACTIONS', payload: syncData.transactions });
+        } else {
+          console.log('[TransactionContext] Skipping transaction update - local has more transactions');
+        }
       }
+      
+      // Always update summary and breakdown (they're calculated server-side)
       if (syncData.summary) {
         dispatch({ type: 'SET_SUMMARY', payload: syncData.summary });
       }
