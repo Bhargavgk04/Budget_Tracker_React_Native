@@ -67,16 +67,16 @@ export const TransactionProvider = ({ children }) => {
   const loadTransactions = useCallback(async () => {
     if (!user?._id) return;
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
       const response = await transactionAPI.getAll(user.id || user._id);
       dispatch({ type: 'SET_TRANSACTIONS', payload: response.data });
     } catch (error) {
       console.error('Error loading transactions:', error);
-      dispatch({ type: 'SET_ERROR', payload: error.message });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      // Don't set error state for background refreshes
+      if (!state.transactions.length) {
+        dispatch({ type: 'SET_ERROR', payload: error.message });
+      }
     }
-  }, [user?._id]);
+  }, [user?._id, state.transactions.length]);
 
   const loadSummary = useCallback(async () => {
     if (!user?._id) return;
@@ -106,8 +106,8 @@ export const TransactionProvider = ({ children }) => {
     }
     
     const now = Date.now();
-    // Prevent excessive refresh calls (minimum 2 seconds between calls)
-    if (!force && now - lastRefreshTime.current < 2000) {
+    // Prevent excessive refresh calls (minimum 3 seconds between calls)
+    if (!force && now - lastRefreshTime.current < 3000) {
       console.log('[TransactionContext] Refresh throttled, skipping...');
       return;
     }
@@ -116,18 +116,37 @@ export const TransactionProvider = ({ children }) => {
     console.log('[TransactionContext] Refreshing data...');
     
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      await Promise.all([
+      // Don't show loading for background refreshes
+      if (force) {
+        dispatch({ type: 'SET_LOADING', payload: true });
+      }
+      
+      // Run refreshes in parallel but catch individual errors
+      const results = await Promise.allSettled([
         loadTransactions(),
         loadSummary(),
         loadCategoryBreakdown()
       ]);
-      console.log('[TransactionContext] Data refreshed successfully, transactions:', state.transactions.length);
+      
+      // Log any failures but don't throw
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const names = ['transactions', 'summary', 'categoryBreakdown'];
+          console.warn(`[TransactionContext] Failed to refresh ${names[index]}:`, result.reason);
+        }
+      });
+      
+      console.log('[TransactionContext] Data refresh completed');
     } catch (error) {
       console.error('[TransactionContext] Error refreshing data:', error);
-      dispatch({ type: 'SET_ERROR', payload: error.message });
+      // Only set error for forced refreshes
+      if (force) {
+        dispatch({ type: 'SET_ERROR', payload: error.message });
+      }
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      if (force) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
     }
   }, [user?._id, loadTransactions, loadSummary, loadCategoryBreakdown]);
 
@@ -146,14 +165,8 @@ export const TransactionProvider = ({ children }) => {
       const transaction = response.data || response;
       dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
       
-      // Auto-refresh summary and breakdown
-      await Promise.all([
-        loadSummary(),
-        loadCategoryBreakdown()
-      ]);
-      
-      // Trigger full refresh after a short delay to ensure backend consistency
-      setTimeout(() => refreshData(true), 500);
+      // Trigger a batched sync via RealtimeService
+      realtimeService.triggerMutationSync();
       
       return { success: true, data: transaction };
     } catch (error) {
@@ -162,49 +175,37 @@ export const TransactionProvider = ({ children }) => {
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       return { success: false, error: errorMessage };
     }
-  }, [user?._id, loadSummary, loadCategoryBreakdown, refreshData]);
+  }, [user?._id]);
 
   const updateTransaction = useCallback(async (id, transactionData) => {
     try {
       const response = await transactionAPI.update(id, transactionData);
       dispatch({ type: 'UPDATE_TRANSACTION', payload: response.data });
       
-      // Auto-refresh summary and breakdown
-      await Promise.all([
-        loadSummary(),
-        loadCategoryBreakdown()
-      ]);
-      
-      // Trigger full refresh after a short delay to ensure backend consistency
-      setTimeout(() => refreshData(true), 500);
+      // Trigger a batched sync via RealtimeService
+      realtimeService.triggerMutationSync();
       
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       return { success: false, error: error.message };
     }
-  }, [loadSummary, loadCategoryBreakdown, refreshData]);
+  }, []);
 
   const deleteTransaction = useCallback(async (id) => {
     try {
       await transactionAPI.delete(id);
       dispatch({ type: 'DELETE_TRANSACTION', payload: id });
       
-      // Auto-refresh summary and breakdown
-      await Promise.all([
-        loadSummary(),
-        loadCategoryBreakdown()
-      ]);
-      
-      // Trigger full refresh after a short delay to ensure backend consistency
-      setTimeout(() => refreshData(true), 500);
+      // Trigger a batched sync via RealtimeService
+      realtimeService.triggerMutationSync();
       
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       return { success: false, error: error.message };
     }
-  }, [loadSummary, loadCategoryBreakdown, refreshData]);
+  }, []);
 
   // Enhanced app state monitoring for auto-refresh
   useEffect(() => {
@@ -263,19 +264,16 @@ export const TransactionProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?._id]);
 
-  // Periodic refresh when authenticated
-  useEffect(() => {
-    if (!isAuthenticated || !user?._id) return;
-
-    // Set up periodic refresh every 30 seconds
-    const intervalId = setInterval(() => {
-      refreshData(false); // Non-forced refresh
-    }, 30000);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isAuthenticated, user?._id, refreshData]);
+  // Periodic refresh disabled - RealtimeService handles this
+  // useEffect(() => {
+  //   if (!isAuthenticated || !user?._id) return;
+  //   const intervalId = setInterval(() => {
+  //     refreshData(false);
+  //   }, 30000);
+  //   return () => {
+  //     if (intervalId) clearInterval(intervalId);
+  //   };
+  // }, [isAuthenticated, user?._id, refreshData]);
 
   // Load transactions when user is authenticated (only once on mount)
   useEffect(() => {

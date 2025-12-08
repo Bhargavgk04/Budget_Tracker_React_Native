@@ -91,12 +91,13 @@ class RealtimeService {
   }
 
   // Sync data with server
-  async syncData() {
+  async syncData(force = false) {
     try {
       const now = Date.now();
       
-      // Prevent excessive sync calls (minimum 5 seconds between calls)
-      if (now - this.lastSyncTime < 5000) {
+      // Prevent excessive sync calls (minimum 2 seconds between calls unless forced)
+      if (!force && now - this.lastSyncTime < 2000) {
+        console.log('Sync throttled, skipping...');
         return;
       }
       
@@ -146,10 +147,19 @@ class RealtimeService {
     }
   }
 
-  // Force sync immediately
+  // Force sync immediately (for after mutations)
   async forceSync() {
-    this.lastSyncTime = 0; // Reset the throttle
-    return await this.syncData();
+    return await this.syncData(true);
+  }
+  
+  // Trigger sync after mutation with slight delay to batch multiple operations
+  triggerMutationSync() {
+    if (this.mutationSyncTimeout) {
+      clearTimeout(this.mutationSyncTimeout);
+    }
+    this.mutationSyncTimeout = setTimeout(() => {
+      this.forceSync();
+    }, 500); // 500ms delay to batch operations
   }
 
   // Get sync status
