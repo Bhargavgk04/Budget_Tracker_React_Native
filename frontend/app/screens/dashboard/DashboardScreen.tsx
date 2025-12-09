@@ -201,7 +201,10 @@ function DashboardScreen({ navigation }: any) {
         <View style={styles.summaryHeader}>
           <View>
             <Text style={styles.summaryGreeting}>Total Balance</Text>
-            <Text style={styles.summaryBalance}>
+            <Text style={[
+              styles.summaryBalance,
+              (summary?.balance || 0) < 0 && styles.summaryBalanceNegative
+            ]}>
               {formatCurrency(summary?.balance || 0)}
             </Text>
           </View>
@@ -334,6 +337,10 @@ function DashboardScreen({ navigation }: any) {
     );
   };
 
+  const handleTransactionPress = (transaction: Transaction) => {
+    navigation.navigate('TransactionDetails', { transaction });
+  };
+
   const renderRecentTransactions = () => (
     <Animated.View entering={FadeInDown.delay(300)} style={styles.transactionsCard}>
       <View style={styles.transactionsHeader}>
@@ -344,7 +351,12 @@ function DashboardScreen({ navigation }: any) {
       </View>
 
       {Array.isArray(recentTransactions) && recentTransactions.map((transaction, index) => (
-        <View key={(transaction as any).id || (transaction as any)._id || index} style={styles.transactionItem}>
+        <TouchableOpacity 
+          key={(transaction as any).id || (transaction as any)._id || index} 
+          style={styles.transactionItem}
+          onPress={() => handleTransactionPress(transaction)}
+          activeOpacity={0.7}
+        >
           <View style={styles.transactionIcon}>
             <MaterialIcons
               name={transaction.type === 'income' ? 'trending-up' : 'trending-down'}
@@ -369,7 +381,7 @@ function DashboardScreen({ navigation }: any) {
             {transaction.type === 'income' ? '+' : '-'}
             {formatCurrency(transaction.amount)}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
 
       {recentTransactions.length === 0 && (
@@ -454,6 +466,9 @@ function DashboardScreen({ navigation }: any) {
       color: '#FFFFFF',
       fontWeight: '700',
       fontSize: 36,
+    },
+    summaryBalanceNegative: {
+      color: '#FF4444',
     },
     periodSelectorCompact: {
       flexDirection: 'row',

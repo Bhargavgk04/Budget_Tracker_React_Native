@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -27,7 +27,7 @@ import AppHeader from '../components/common/AppHeader';
 import RefreshControlComponent from '../components/common/RefreshControl';
 import { useFocusEffect } from '@react-navigation/native';
 
-const TransactionsScreen = () => {
+const TransactionsScreen = ({ navigation }) => {
   const { transactions, refreshData, deleteTransaction, isLoading } = useTransactions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTransactions, setFilteredTransactions] = useState([]);
@@ -108,6 +108,10 @@ const TransactionsScreen = () => {
     );
   };
 
+  const handleTransactionPress = (transaction) => {
+    navigation.navigate('TransactionDetails', { transaction });
+  };
+
   const renderTransactionItem = ({ item, index }) => (
     <SlideInAnimation direction="right" delay={index * 50}>
       <TouchableOpacity 
@@ -120,6 +124,7 @@ const TransactionsScreen = () => {
           elevation: 3,
         }}
         activeOpacity={0.7}
+        onPress={() => handleTransactionPress(item)}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">

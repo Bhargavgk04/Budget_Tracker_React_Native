@@ -7,6 +7,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddNavigator from './AddNavigator'; // Changed: Import AddNavigator instead
+import TransactionDetailsScreen from '../screens/transactions/TransactionDetailsScreen';
 import { COLORS } from '../utils/constants';
 
 const Tab = createBottomTabNavigator();
@@ -82,6 +83,18 @@ const TabNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      <Stack.Screen 
+        name="TransactionDetails" 
+        component={TransactionDetailsScreen}
+        options={{
+          presentation: 'card',
+          cardStyleInterpolator: ({ current: { progress } }) => ({
+            cardStyle: {
+              opacity: progress,
+            },
+          }),
+        }}
+      />
     </Stack.Navigator>
   );
 };

@@ -91,6 +91,57 @@ router.get('/', validateTransactionQuery, async (req, res, next) => {
   }
 });
 
+// @desc    Get transaction statistics
+// @route   GET /api/transactions/stats
+// @access  Private
+router.get('/stats', async (req, res, next) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const matchQuery = { userId: req.user._id };
+    if (startDate || endDate) {
+      matchQuery.date = {};
+      if (startDate) matchQuery.date.$gte = new Date(startDate);
+      if (endDate) matchQuery.date.$lte = new Date(endDate);
+    }
+
+    const stats = await Transaction.aggregate([
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: '$type',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+          avgAmount: { $avg: '$amount' }
+        }
+      }
+    ]);
+
+    const result = {
+      income: { total: 0, count: 0, avgAmount: 0 },
+      expense: { total: 0, count: 0, avgAmount: 0 }
+    };
+
+    stats.forEach(stat => {
+      result[stat._id] = {
+        total: stat.total,
+        count: stat.count,
+        avgAmount: Math.round(stat.avgAmount * 100) / 100
+      };
+    });
+
+    result.balance = result.income.total - result.expense.total;
+    result.totalTransactions = result.income.count + result.expense.count;
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Get single transaction
 // @route   GET /api/transactions/:id
 // @access  Private
@@ -401,57 +452,6 @@ router.post('/bulk', async (req, res, next) => {
       success: true,
       data: createdTransactions,
       message: `${createdTransactions.length} transactions created successfully`
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// @desc    Get transaction statistics
-// @route   GET /api/transactions/stats
-// @access  Private
-router.get('/stats', async (req, res, next) => {
-  try {
-    const { startDate, endDate } = req.query;
-    
-    const matchQuery = { userId: req.user._id };
-    if (startDate || endDate) {
-      matchQuery.date = {};
-      if (startDate) matchQuery.date.$gte = new Date(startDate);
-      if (endDate) matchQuery.date.$lte = new Date(endDate);
-    }
-
-    const stats = await Transaction.aggregate([
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: '$type',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-          avgAmount: { $avg: '$amount' }
-        }
-      }
-    ]);
-
-    const result = {
-      income: { total: 0, count: 0, avgAmount: 0 },
-      expense: { total: 0, count: 0, avgAmount: 0 }
-    };
-
-    stats.forEach(stat => {
-      result[stat._id] = {
-        total: stat.total,
-        count: stat.count,
-        avgAmount: Math.round(stat.avgAmount * 100) / 100
-      };
-    });
-
-    result.balance = result.income.total - result.expense.total;
-    result.totalTransactions = result.income.count + result.expense.count;
-
-    res.status(200).json({
-      success: true,
-      data: result
     });
   } catch (error) {
     next(error);
