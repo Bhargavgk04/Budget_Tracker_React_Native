@@ -167,8 +167,8 @@ export class DataTransformUtils {
     
     switch (type) {
       case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       
       case 'week':
@@ -176,26 +176,29 @@ export class DataTransformUtils {
         startDate = new Date(now);
         startDate.setDate(now.getDate() - dayOfWeek);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
         break;
       
       case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        // Start of current month at 00:00:00
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        // End of current month at 23:59:59
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
       
       case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
         break;
       
       case 'custom':
-        startDate = customStart || new Date(now.getFullYear(), now.getMonth(), 1);
+        startDate = customStart || new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         endDate = customEnd || new Date(now);
         break;
       
       default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         endDate = new Date(now);
     }
     

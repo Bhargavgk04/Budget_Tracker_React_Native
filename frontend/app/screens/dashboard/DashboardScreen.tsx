@@ -81,6 +81,10 @@ function DashboardScreen({ navigation }: any) {
         // Use real API for actual users
         const period = DataTransformUtils.generateTimePeriod(selectedPeriod);
         
+        console.log('[Dashboard] Period:', selectedPeriod);
+        console.log('[Dashboard] Start Date:', period.startDate.toISOString());
+        console.log('[Dashboard] End Date:', period.endDate.toISOString());
+        
         // Get transactions
         const transactionsData = await TransactionService.getRecentTransactions(5);
         
@@ -91,6 +95,9 @@ function DashboardScreen({ navigation }: any) {
         });
         
         const allTransactions = allTransactionsResponse.data || [];
+        
+        console.log('[Dashboard] Fetched transactions count:', allTransactions.length);
+        console.log('[Dashboard] Sample transaction dates:', allTransactions.slice(0, 3).map(t => t.date));
         
         // Calculate summary from transactions
         const totalIncome = allTransactions
@@ -110,13 +117,15 @@ function DashboardScreen({ navigation }: any) {
             categoryMap.set(t.category, current + (t.amount || 0));
           });
         
-        const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, amount]) => ({
-          category,
-          amount,
-          percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
-          color: CHART_COLORS[Math.abs(category.length) % CHART_COLORS.length],
-          icon: 'help' as any,
-        }));
+        const categoryBreakdown = Array.from(categoryMap.entries())
+          .map(([category, amount], index) => ({
+            category,
+            amount,
+            percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+            color: CHART_COLORS[index % CHART_COLORS.length],
+            icon: 'help' as any,
+          }))
+          .sort((a, b) => b.amount - a.amount); // Sort by amount descending
 
         const summaryData: FinancialSummary = {
           totalIncome,
@@ -125,6 +134,13 @@ function DashboardScreen({ navigation }: any) {
           period,
           categoryBreakdown,
         };
+
+        console.log('[Dashboard] Summary calculated:');
+        console.log('  - Total Income:', totalIncome);
+        console.log('  - Total Expenses:', totalExpenses);
+        console.log('  - Balance:', totalIncome - totalExpenses);
+        console.log('  - Categories:', categoryBreakdown.length);
+        console.log('  - Top 3 categories:', categoryBreakdown.slice(0, 3).map(c => `${c.category}: ${c.amount}`));
 
         setSummary(summaryData);
         setRecentTransactions(Array.isArray(transactionsData) ? transactionsData : []);
@@ -227,7 +243,20 @@ function DashboardScreen({ navigation }: any) {
   );
 
   const renderCategoryChart = () => {
-    if (!summary?.categoryBreakdown.length) return null;
+    if (!summary?.categoryBreakdown.length) {
+      return (
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Expense Categories</Text>
+          </View>
+          <View style={styles.emptyState}>
+            <MaterialIcons name="pie-chart" size={48} color={theme.colors.onSurface + '40'} />
+            <Text style={styles.emptyStateText}>No expenses yet</Text>
+            <Text style={styles.emptyStateSubtext}>Add expenses to see category breakdown</Text>
+          </View>
+        </Animated.View>
+      );
+    }
 
     const pieData = DataTransformUtils.transformToPieChartData(summary.categoryBreakdown);
 
@@ -235,21 +264,50 @@ function DashboardScreen({ navigation }: any) {
       <Animated.View entering={FadeInDown.delay(200)} style={styles.chartCard}>
         <View style={styles.chartHeader}>
           <Text style={styles.chartTitle}>Expense Categories</Text>
-
+          <Text style={styles.chartSubtitle}>
+            {formatCurrency(summary.totalExpenses)} total
+          </Text>
         </View>
         
         <PieChart
           data={pieData}
-          width={screenWidth - 32}
-          height={200}
+          width={screenWidth - 64}
+          height={220}
           chartConfig={{
             color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
           }}
           accessor="amount"
           backgroundColor="transparent"
           paddingLeft="15"
+          center={[10, 0]}
           absolute
+          hasLegend={false}
         />
+
+        {/* Custom Legend */}
+        <View style={styles.legendContainer}>
+          {summary.categoryBreakdown.slice(0, 5).map((item, index) => (
+            <View key={index} style={styles.legendItem}>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                <Text style={styles.legendLabel} numberOfLines={1}>
+                  {item.category}
+                </Text>
+                <Text style={styles.legendPercentage}>
+                  {item.percentage.toFixed(1)}%
+                </Text>
+              </View>
+              <Text style={styles.legendAmount}>
+                {formatCurrency(item.amount)}
+              </Text>
+            </View>
+          ))}
+          {summary.categoryBreakdown.length > 5 && (
+            <Text style={styles.legendMore}>
+              +{summary.categoryBreakdown.length - 5} more categories
+            </Text>
+          )}
+        </View>
       </Animated.View>
     );
   };
@@ -476,6 +534,56 @@ function DashboardScreen({ navigation }: any) {
     chartTitle: {
       ...theme.typography.h6,
       color: theme.colors.onSurface,
+      fontWeight: '600',
+    },
+    chartSubtitle: {
+      ...theme.typography.caption,
+      color: theme.colors.onSurface + '70',
+      fontWeight: '500',
+    },
+    legendContainer: {
+      marginTop: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.onSurface + '10',
+    },
+    legendItem: {
+      marginBottom: theme.spacing.md,
+    },
+    legendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    legendDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: theme.spacing.sm,
+    },
+    legendLabel: {
+      ...theme.typography.body2,
+      color: theme.colors.onSurface,
+      flex: 1,
+      fontWeight: '500',
+    },
+    legendPercentage: {
+      ...theme.typography.caption,
+      color: theme.colors.onSurface + '70',
+      fontWeight: '600',
+      marginLeft: theme.spacing.sm,
+    },
+    legendAmount: {
+      ...theme.typography.caption,
+      color: theme.colors.onSurface + '60',
+      marginLeft: 20,
+    },
+    legendMore: {
+      ...theme.typography.caption,
+      color: theme.colors.primary,
+      fontStyle: 'italic',
+      marginTop: theme.spacing.xs,
+      textAlign: 'center',
     },
     transactionsCard: {
       backgroundColor: theme.colors.surface,
