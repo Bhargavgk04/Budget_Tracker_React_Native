@@ -15,29 +15,88 @@ import { Transaction } from "@/types";
 
 const TransactionDetailsScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
-  const { transaction } = route.params;
+  const transaction = route?.params?.transaction;
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[TransactionDetails] Route params:', route?.params);
+    console.log('[TransactionDetails] Transaction data:', transaction);
+    console.log('[TransactionDetails] Has transaction:', !!transaction);
+    if (transaction) {
+      console.log('[TransactionDetails] Transaction fields:', {
+        id: transaction.id || transaction._id,
+        type: transaction.type,
+        amount: transaction.amount,
+        category: transaction.category,
+        date: transaction.date,
+      });
+    }
+  }, []);
+
+  // Handle missing transaction data
+  React.useEffect(() => {
+    if (!transaction) {
+      console.error('[TransactionDetails] No transaction data found in route params');
+      Alert.alert(
+        'Error',
+        'Transaction data not found',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    }
+  }, [transaction, navigation]);
+
+  // Return early if no transaction
+  if (!transaction) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <MaterialIcons name="error-outline" size={64} color="#EF4444" />
+          <Text style={{ marginTop: 16, fontSize: 18, color: '#64748B' }}>
+            Transaction not found
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const formatCurrency = (amount: number): string => {
     return `₹${Math.abs(amount).toFixed(2)}`;
   };
 
-  const formatDate = (date: string | Date): string => {
-    const d = new Date(date);
-    return d.toLocaleDateString("en-IN", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  const formatDate = (date: string | Date | undefined): string => {
+    if (!date) return 'N/A';
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return 'Invalid Date';
+      return d.toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
-  const formatTime = (date: string | Date): string => {
-    const d = new Date(date);
-    return d.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+  const formatTime = (date: string | Date | undefined): string => {
+    if (!date) return 'N/A';
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return 'Invalid Time';
+      return d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (error) {
+      return 'Invalid Time';
+    }
   };
 
   const handleEdit = () => {
@@ -322,13 +381,15 @@ const TransactionDetailsScreen = ({ navigation, route }: any) => {
         </Animated.View>
 
         {/* Description Card */}
-        {transaction.description && (
+        {(transaction.description || transaction.notes) && (
           <Animated.View
             entering={FadeInDown.delay(300)}
             style={styles.descriptionCard}
           >
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{transaction.description}</Text>
+            <Text style={styles.description}>
+              {transaction.description || transaction.notes}
+            </Text>
           </Animated.View>
         )}
       </ScrollView>

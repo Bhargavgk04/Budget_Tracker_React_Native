@@ -29,10 +29,11 @@ export interface Transaction {
   type: 'income' | 'expense';
   paymentMode: PaymentMode;
   notes?: string;
-  date: Date;
+  description?: string;
+  date: Date | string;
   recurring?: RecurringConfig;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface Category {

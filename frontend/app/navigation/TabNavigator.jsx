@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
-import DashboardScreen from '../screens/DashboardScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddNavigator from './AddNavigator'; // Changed: Import AddNavigator instead

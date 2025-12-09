@@ -338,6 +338,19 @@ function DashboardScreen({ navigation }: any) {
   };
 
   const handleTransactionPress = (transaction: Transaction) => {
+    console.log('[DashboardScreen] Navigating to details with transaction:', {
+      id: (transaction as any)?.id || (transaction as any)?._id,
+      type: transaction?.type,
+      amount: transaction?.amount,
+      category: transaction?.category,
+      hasAllFields: !!(transaction?.type && transaction?.amount)
+    });
+    
+    if (!transaction || !transaction.type) {
+      console.error('[DashboardScreen] Invalid transaction data:', transaction);
+      return;
+    }
+    
     navigation.navigate('TransactionDetails', { transaction });
   };
 

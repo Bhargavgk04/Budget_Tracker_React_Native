@@ -109,6 +109,19 @@ const TransactionsScreen = ({ navigation }) => {
   };
 
   const handleTransactionPress = (transaction) => {
+    console.log('[TransactionsScreen] Navigating to details with transaction:', {
+      id: transaction?.id,
+      type: transaction?.type,
+      amount: transaction?.amount,
+      category: transaction?.category,
+      hasAllFields: !!(transaction?.id && transaction?.type && transaction?.amount)
+    });
+    
+    if (!transaction || !transaction.type) {
+      Alert.alert('Error', 'Invalid transaction data');
+      return;
+    }
+    
     navigation.navigate('TransactionDetails', { transaction });
   };
 
