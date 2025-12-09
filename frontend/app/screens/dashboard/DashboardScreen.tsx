@@ -99,14 +99,33 @@ function DashboardScreen({ navigation }: any) {
         console.log('[Dashboard] Fetched transactions count:', allTransactions.length);
         console.log('[Dashboard] Sample transaction dates:', allTransactions.slice(0, 3).map(t => t.date));
         
-        // Calculate summary from transactions
-        const totalIncome = allTransactions
-          .filter(t => t.type === 'income')
-          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        // Debug: Check if transactions are in the date range
+        if (allTransactions.length > 0) {
+          console.log('[Dashboard] Checking date range match:');
+          allTransactions.slice(0, 5).forEach((t, i) => {
+            const tDate = new Date(t.date);
+            const inRange = tDate >= period.startDate && tDate <= period.endDate;
+            console.log(`  Transaction ${i + 1}:`, {
+              date: t.date,
+              parsed: tDate.toISOString(),
+              type: t.type,
+              amount: t.amount,
+              category: t.category,
+              inRange: inRange ? '✅' : '❌'
+            });
+          });
+        }
         
-        const totalExpenses = allTransactions
-          .filter(t => t.type === 'expense')
-          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        // Calculate summary from transactions
+        const incomeTransactions = allTransactions.filter(t => t.type === 'income');
+        const expenseTransactions = allTransactions.filter(t => t.type === 'expense');
+        
+        console.log('[Dashboard] Transaction breakdown:');
+        console.log('  - Income transactions:', incomeTransactions.length);
+        console.log('  - Expense transactions:', expenseTransactions.length);
+        
+        const totalIncome = incomeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+        const totalExpenses = expenseTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
         
         // Calculate category breakdown
         const categoryMap = new Map<string, number>();

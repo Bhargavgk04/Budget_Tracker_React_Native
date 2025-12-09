@@ -174,21 +174,18 @@ const AddTransactionScreen = ({
         const { MockDataService } = await import("@/services/MockDataService");
         await MockDataService.addTransaction(transactionData);
       } else {
-        // Add timeout protection
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request taking too long')), 5000)
+        // Add timeout protection (10 seconds to handle backend wake-up)
+        const timeoutPromise = new Promise<{ success: false; error: string }>((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout - backend may be sleeping. Please try again.')), 10000)
         );
         
         const result = await Promise.race([
           addTransactionToContext(transactionData),
           timeoutPromise
-        ]).catch(err => {
-          console.error('Transaction timeout or error:', err);
-          return { success: false, error: err.message };
-        });
+        ]);
         
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to add transaction');
+        if (!result || !result.success) {
+          throw new Error(result?.error || 'Failed to add transaction');
         }
         
         // Handle split creation if configured
@@ -203,6 +200,9 @@ const AddTransactionScreen = ({
         }
       }
 
+      // Stop loading before navigation
+      setIsLoading(false);
+      
       // Reset form
       setAmount("");
       setCategory("");
@@ -217,7 +217,7 @@ const AddTransactionScreen = ({
       
     } catch (error) {
       console.error("Failed to add transaction:", error);
-      Alert.alert("Error", "Failed to add transaction. Please try again.");
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to add transaction. Please try again.");
       setIsLoading(false);
     }
   };

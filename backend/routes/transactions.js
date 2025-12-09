@@ -36,8 +36,14 @@ router.get('/', validateTransactionQuery, async (req, res, next) => {
     
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
+      if (startDate) {
+        query.date.$gte = new Date(startDate);
+        console.log('[Backend] Start date filter:', startDate, '→', query.date.$gte);
+      }
+      if (endDate) {
+        query.date.$lte = new Date(endDate);
+        console.log('[Backend] End date filter:', endDate, '→', query.date.$lte);
+      }
     }
 
     // Build sort object
@@ -55,6 +61,14 @@ router.get('/', validateTransactionQuery, async (req, res, next) => {
         .lean({ virtuals: true }),
       Transaction.countDocuments(query)
     ]);
+
+    console.log('[Backend] Query result:', {
+      userId: req.user._id.toString(),
+      dateFilter: query.date,
+      found: transactions.length,
+      total: total,
+      sampleDates: transactions.slice(0, 3).map(t => t.date)
+    });
 
     const totalPages = Math.ceil(total / limit);
 
