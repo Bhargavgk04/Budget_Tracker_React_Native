@@ -145,14 +145,17 @@ export const authAPI = {
 export const transactionAPI = {
   create: async (transactionData) => {
     try {
+      console.log('[API] Creating transaction with data:', transactionData);
       const response = await apiRequest("/transactions", {
         method: "POST",
         body: JSON.stringify(transactionData),
       }, true); // Invalidate cache
 
+      console.log('[API] Transaction created successfully:', response);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Error creating transaction:", error);
+      console.error("[API] Error creating transaction:", error);
+      console.error("[API] Transaction data that failed:", transactionData);
       return { success: false, error: error.message };
     }
   },

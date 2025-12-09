@@ -29,8 +29,8 @@ const schemas = {
     category: Joi.string().required(),
     type: Joi.string().valid('income', 'expense').required(),
     paymentMode: Joi.string().valid('cash', 'upi', 'card', 'bank_transfer', 'other').required(),
-    notes: Joi.string().max(500).allow('').optional(),
-    date: Joi.date().max('now').required(),
+    notes: Joi.string().max(500).allow('', null).optional(),
+    date: Joi.date().required(), // Allow any date (removed max('now') to handle timezone issues)
     friendUid: Joi.string().optional(),
     friendId: Joi.string().optional(),
     splitInfo: Joi.object({

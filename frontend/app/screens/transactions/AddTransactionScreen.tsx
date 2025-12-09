@@ -159,9 +159,13 @@ const AddTransactionScreen = ({
       category,
       type,
       paymentMode,
-      notes: notes || undefined,
-      date: date.toISOString(),
+      date: new Date().toISOString(), // Use current time to avoid future date issues
     };
+    
+    // Only add notes if it has a value
+    if (notes && notes.trim()) {
+      transactionData.notes = notes.trim();
+    }
 
     const isDemoUser = user?.id === "demo-user-123";
     
