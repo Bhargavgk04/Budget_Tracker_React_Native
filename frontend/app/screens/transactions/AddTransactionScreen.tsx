@@ -174,8 +174,18 @@ const AddTransactionScreen = ({
         const { MockDataService } = await import("@/services/MockDataService");
         await MockDataService.addTransaction(transactionData);
       } else {
-        // Wait for server response
-        const result = await addTransactionToContext(transactionData);
+        // Add timeout protection
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request taking too long')), 5000)
+        );
+        
+        const result = await Promise.race([
+          addTransactionToContext(transactionData),
+          timeoutPromise
+        ]).catch(err => {
+          console.error('Transaction timeout or error:', err);
+          return { success: false, error: err.message };
+        });
         
         if (!result.success) {
           throw new Error(result.error || 'Failed to add transaction');

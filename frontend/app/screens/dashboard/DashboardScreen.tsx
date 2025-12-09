@@ -84,8 +84,8 @@ function DashboardScreen({ navigation }: any) {
         // Get transactions
         const transactionsData = await TransactionService.getRecentTransactions(5);
         
-        // Get all transactions for the period (using pagination with high limit)
-        const allTransactionsResponse = await TransactionService.getTransactions(1, 1000, {
+        // Get transactions for the period (reasonable limit)
+        const allTransactionsResponse = await TransactionService.getTransactions(1, 100, {
           startDate: period.startDate,
           endDate: period.endDate,
         });

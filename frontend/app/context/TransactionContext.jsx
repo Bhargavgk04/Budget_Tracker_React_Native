@@ -61,7 +61,11 @@ export const TransactionProvider = ({ children }) => {
     if (!user?._id) return;
     try {
       const response = await transactionAPI.getAll(user.id || user._id);
-      dispatch({ type: 'SET_TRANSACTIONS', payload: response.data });
+      if (response.success) {
+        dispatch({ type: 'SET_TRANSACTIONS', payload: response.data });
+      } else {
+        throw new Error(response.error || 'Failed to load transactions');
+      }
     } catch (error) {
       console.error('Error loading transactions:', error);
       // Don't set error state for background refreshes
@@ -125,12 +129,22 @@ export const TransactionProvider = ({ children }) => {
         userId: user.id || user._id
       });
       
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create transaction');
+      }
+      
       console.log('[TransactionContext] Transaction created successfully');
       
-      // Immediately refresh transactions from server
-      await loadTransactions();
+      // Add to local state immediately for instant UI update
+      const transaction = response.data || response;
+      dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
       
-      return { success: true, data: response.data || response };
+      // Refresh in background (non-blocking)
+      loadTransactions().catch(err => {
+        console.warn('[TransactionContext] Background refresh failed:', err);
+      });
+      
+      return { success: true, data: transaction };
     } catch (error) {
       console.error('[TransactionContext] Error adding transaction:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to add transaction';

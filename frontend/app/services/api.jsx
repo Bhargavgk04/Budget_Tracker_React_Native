@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../utils/constants";
 
 // API Base URL - Update this to match your backend
-const API_BASE_URL = process.env.API_URL || "http://192.168.0.125:3000/api";
+const API_BASE_URL = "https://budget-tracker-react-native-kjff.onrender.com/api";
 
 // Cache invalidation timestamps
 const cacheInvalidationTimes = new Map();
@@ -18,40 +18,62 @@ const getAuthToken = async () => {
   }
 };
 
-// Helper function to make API requests with cache invalidation
-const apiRequest = async (endpoint, options = {}, invalidateCache = false) => {
-  try {
-    // Invalidate cache for POST/PUT/DELETE operations
-    if (invalidateCache || ['POST', 'PUT', 'DELETE'].includes(options.method)) {
-      await invalidateRelatedCache(endpoint);
-    }
-
-    const token = await getAuthToken();
-    const headers = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || data.message || "Request failed");
-    }
-
-    return data;
-  } catch (error) {
-    console.error(`API Request Error (${endpoint}):`, error);
-    throw error;
+// Helper function to make API requests with cache invalidation and retry
+const apiRequest = async (endpoint, options = {}, invalidateCache = false, retries = 2) => {
+  // Invalidate cache for POST/PUT/DELETE operations
+  if (invalidateCache || ['POST', 'PUT', 'DELETE'].includes(options.method)) {
+    await invalidateRelatedCache(endpoint);
   }
+
+  const token = await getAuthToken();
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Request failed");
+      }
+
+      return data;
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry on auth errors or client errors
+      if (error.message?.includes('401') || error.message?.includes('403')) {
+        throw error;
+      }
+
+      // Log retry attempts
+      if (attempt < retries) {
+        console.warn(`API Request failed (${endpoint}), retrying... (${attempt + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+      }
+    }
+  }
+
+  console.error(`API Request Error (${endpoint}):`, lastError);
+  throw new Error(`Network error: ${lastError.message}. Backend may be sleeping on Render - please wait 30 seconds and try again.`);
 };
 
 // Cache invalidation helper
@@ -144,63 +166,42 @@ export const authAPI = {
 // Transaction API
 export const transactionAPI = {
   create: async (transactionData) => {
-    try {
-      console.log('[API] Creating transaction with data:', transactionData);
-      const response = await apiRequest("/transactions", {
-        method: "POST",
-        body: JSON.stringify(transactionData),
-      }, true); // Invalidate cache
+    console.log('[API] Creating transaction with data:', transactionData);
+    const response = await apiRequest("/transactions", {
+      method: "POST",
+      body: JSON.stringify(transactionData),
+    }, true); // Invalidate cache
 
-      console.log('[API] Transaction created successfully:', response);
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error("[API] Error creating transaction:", error);
-      console.error("[API] Transaction data that failed:", transactionData);
-      return { success: false, error: error.message };
-    }
+    console.log('[API] Transaction created successfully:', response);
+    return { success: true, data: response.data };
   },
 
   getAll: async (userId) => {
-    try {
-      const response = await apiRequest("/transactions");
-      const raw = response.data?.data || response.data || [];
-      const normalized = Array.isArray(raw)
-        ? raw.map(item => ({ ...item, id: item.id || item._id }))
-        : Array.isArray(raw.data)
-          ? raw.data.map(item => ({ ...item, id: item.id || item._id }))
-          : [];
-      return { success: true, data: normalized };
-    } catch (error) {
-      console.error("Error getting transactions:", error);
-      return { success: false, data: [], error: error.message };
-    }
+    const response = await apiRequest("/transactions");
+    const raw = response.data?.data || response.data || [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(item => ({ ...item, id: item.id || item._id }))
+      : Array.isArray(raw.data)
+        ? raw.data.map(item => ({ ...item, id: item.id || item._id }))
+        : [];
+    return { success: true, data: normalized };
   },
 
   update: async (id, transactionData) => {
-    try {
-      const response = await apiRequest(`/transactions/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(transactionData),
-      }, true); // Invalidate cache
+    const response = await apiRequest(`/transactions/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(transactionData),
+    }, true); // Invalidate cache
 
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-      throw error;
-    }
+    return { success: true, data: response.data };
   },
 
   delete: async (id) => {
-    try {
-      const response = await apiRequest(`/transactions/${id}`, {
-        method: "DELETE",
-      }, true); // Invalidate cache
+    const response = await apiRequest(`/transactions/${id}`, {
+      method: "DELETE",
+    }, true); // Invalidate cache
 
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error("Error deleting transaction:", error);
-      throw error;
-    }
+    return { success: true, data: response.data };
   },
 };
 

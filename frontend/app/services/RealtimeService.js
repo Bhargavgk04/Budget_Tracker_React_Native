@@ -1,4 +1,4 @@
-import { AppState, AppStateStatus } from "react-native";
+import { AppState } from "react-native";
 import { transactionAPI } from "./api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../utils/constants";
