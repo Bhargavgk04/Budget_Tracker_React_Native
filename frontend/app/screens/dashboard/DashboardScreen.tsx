@@ -278,6 +278,7 @@ function DashboardScreen({ navigation }: any) {
     }
 
     const pieData = DataTransformUtils.transformToPieChartData(summary.categoryBreakdown);
+    const chartWidth = screenWidth - 80; // Account for card padding (32) + extra margin
 
     return (
       <Animated.View entering={FadeInDown.delay(200)} style={styles.chartCard}>
@@ -288,20 +289,22 @@ function DashboardScreen({ navigation }: any) {
           </Text>
         </View>
         
-        <PieChart
-          data={pieData}
-          width={screenWidth - 64}
-          height={220}
-          chartConfig={{
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          }}
-          accessor="amount"
-          backgroundColor="transparent"
-          paddingLeft="15"
-          center={[10, 0]}
-          absolute
-          hasLegend={false}
-        />
+        <View style={styles.chartWrapper}>
+          <PieChart
+            data={pieData}
+            width={chartWidth}
+            height={200}
+            chartConfig={{
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor="amount"
+            backgroundColor="transparent"
+            paddingLeft="0"
+            center={[0, 0]}
+            absolute
+            hasLegend={false}
+          />
+        </View>
 
         {/* Custom Legend */}
         <View style={styles.legendContainer}>
@@ -543,6 +546,7 @@ function DashboardScreen({ navigation }: any) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
+      overflow: 'hidden',
     },
     chartHeader: {
       flexDirection: 'row',
@@ -559,6 +563,12 @@ function DashboardScreen({ navigation }: any) {
       ...theme.typography.caption,
       color: theme.colors.onSurface + '70',
       fontWeight: '500',
+    },
+    chartWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      marginVertical: theme.spacing.sm,
     },
     legendContainer: {
       marginTop: theme.spacing.lg,

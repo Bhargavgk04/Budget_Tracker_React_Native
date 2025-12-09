@@ -209,21 +209,21 @@ export const PERFORMANCE_THRESHOLDS = {
 
 // Chart colors for consistent theming - Professional color palette
 export const CHART_COLORS = [
-  '#6366F1', // Indigo
-  '#8B5CF6', // Violet
+  '#5B7FFF', // Soft Blue
+  '#7C3AED', // Purple
   '#EC4899', // Pink
-  '#F43F5E', // Rose
   '#F97316', // Orange
-  '#F59E0B', // Amber
-  '#EAB308', // Yellow
-  '#84CC16', // Lime
-  '#22C55E', // Green
   '#10B981', // Emerald
-  '#14B8A6', // Teal
   '#06B6D4', // Cyan
-  '#0EA5E9', // Sky
+  '#F59E0B', // Amber
+  '#8B5CF6', // Violet
+  '#14B8A6', // Teal
   '#3B82F6', // Blue
-  '#6366F1', // Indigo (repeat for consistency)
+  '#EF4444', // Red
+  '#84CC16', // Lime
+  '#6366F1', // Indigo
+  '#22C55E', // Green
+  '#0EA5E9', // Sky
 ] as const;
 
 // Material Design elevation levels
