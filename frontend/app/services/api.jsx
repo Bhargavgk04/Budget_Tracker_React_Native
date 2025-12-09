@@ -18,8 +18,40 @@ const getAuthToken = async () => {
   }
 };
 
+// Backend wake-up state
+let backendWakeAttempted = false;
+let backendIsAwake = false;
+
+// Wake up backend (call health endpoint)
+const wakeBackend = async () => {
+  if (backendWakeAttempted) return;
+  backendWakeAttempted = true;
+
+  console.log('[API] Waking up backend...');
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for wake
+
+    const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      backendIsAwake = true;
+      console.log('[API] Backend is awake!');
+    }
+  } catch (error) {
+    console.warn('[API] Backend wake-up failed, will retry on next request');
+  }
+};
+
+// Call wake on module load
+wakeBackend();
+
 // Helper function to make API requests with cache invalidation and retry
-const apiRequest = async (endpoint, options = {}, invalidateCache = false, retries = 2) => {
+const apiRequest = async (endpoint, options = {}, invalidateCache = false, retries = 1) => {
   // Invalidate cache for POST/PUT/DELETE operations
   if (invalidateCache || ['POST', 'PUT', 'DELETE'].includes(options.method)) {
     await invalidateRelatedCache(endpoint);
@@ -39,7 +71,9 @@ const apiRequest = async (endpoint, options = {}, invalidateCache = false, retri
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      // Longer timeout for first request if backend might be sleeping
+      const timeout = (!backendIsAwake && attempt === 0) ? 30000 : 10000;
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
@@ -48,6 +82,12 @@ const apiRequest = async (endpoint, options = {}, invalidateCache = false, retri
       });
 
       clearTimeout(timeoutId);
+
+      // Mark backend as awake after first successful request
+      if (!backendIsAwake) {
+        backendIsAwake = true;
+        console.log('[API] Backend confirmed awake');
+      }
 
       const data = await response.json();
 
@@ -67,13 +107,19 @@ const apiRequest = async (endpoint, options = {}, invalidateCache = false, retri
       // Log retry attempts
       if (attempt < retries) {
         console.warn(`API Request failed (${endpoint}), retrying... (${attempt + 1}/${retries})`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
       }
     }
   }
 
   console.error(`API Request Error (${endpoint}):`, lastError);
-  throw new Error(`Network error: ${lastError.message}. Backend may be sleeping on Render - please wait 30 seconds and try again.`);
+  
+  // Provide helpful error message
+  if (lastError.name === 'AbortError' || lastError.message?.includes('timeout')) {
+    throw new Error('Backend is waking up. Please wait 30 seconds and try again.');
+  }
+  
+  throw new Error(`Network error: ${lastError.message}`);
 };
 
 // Cache invalidation helper

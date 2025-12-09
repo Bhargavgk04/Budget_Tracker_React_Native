@@ -18,6 +18,7 @@ import { Transaction } from '@/types';
 import { withPerformanceTracking, performanceUtils } from '@/utils/performance';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo } from 'react';
+import TransactionService from '@/services/TransactionService';
 
 function TransactionListScreen({ navigation }: any) {
   const theme = useTheme();
@@ -81,7 +82,15 @@ function TransactionListScreen({ navigation }: any) {
   const renderTransaction = ({ item }: { item: Transaction }) => (
     <TouchableOpacity
       style={styles.transactionItem}
-      onPress={() => navigation.navigate('TransactionDetails', { transactionId: item.id })}
+      onPress={() => {
+        console.log('[TransactionListScreen] Navigating to details with transaction:', {
+          id: item.id,
+          type: item.type,
+          amount: item.amount,
+          category: item.category,
+        });
+        navigation.navigate('TransactionDetails', { transaction: item });
+      }}
     >
       <View style={[
         styles.iconContainer,

@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ApiResponse, PaginatedResponse } from '@/types';
-import { API_ENDPOINTS, STORAGE_KEYS } from '@/utils/constants';
-import { performanceMonitor } from '@/utils/performance';
-import { withPerformanceMonitoring } from '@/utils/flipper';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ApiResponse, PaginatedResponse } from "@/types";
+import { API_ENDPOINTS, STORAGE_KEYS } from "@/utils/constants";
+import { performanceMonitor } from "@/utils/performance";
+import { withPerformanceMonitoring } from "@/utils/flipper";
 
 // Cache configuration
 interface CacheConfig {
@@ -23,7 +23,7 @@ class NetworkStatus {
 
   static setOnline(status: boolean) {
     this.isOnline = status;
-    this.listeners.forEach(listener => listener(status));
+    this.listeners.forEach((listener) => listener(status));
   }
 
   static getStatus(): boolean {
@@ -33,7 +33,7 @@ class NetworkStatus {
   static addListener(listener: (isOnline: boolean) => void) {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 }
@@ -50,10 +50,10 @@ class RequestQueue {
   static async addToQueue(url: string, options: RequestInit): Promise<string> {
     const id = Date.now().toString() + Math.random().toString(36).substr(2);
     const queueItem = { id, url, options, timestamp: Date.now() };
-    
+
     this.queue.push(queueItem);
     await this.saveQueue();
-    
+
     return id;
   }
 
@@ -77,20 +77,23 @@ class RequestQueue {
 
   private static async saveQueue(): Promise<void> {
     try {
-      await AsyncStorage.setItem('api_request_queue', JSON.stringify(this.queue));
+      await AsyncStorage.setItem(
+        "api_request_queue",
+        JSON.stringify(this.queue)
+      );
     } catch (error) {
-      console.error('Failed to save request queue:', error);
+      console.error("Failed to save request queue:", error);
     }
   }
 
   static async loadQueue(): Promise<void> {
     try {
-      const queueData = await AsyncStorage.getItem('api_request_queue');
+      const queueData = await AsyncStorage.getItem("api_request_queue");
       if (queueData) {
         this.queue = JSON.parse(queueData);
       }
     } catch (error) {
-      console.error('Failed to load request queue:', error);
+      console.error("Failed to load request queue:", error);
     }
   }
 }
@@ -123,12 +126,16 @@ class CacheManager {
 
       return null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      console.error("Cache get error:", error);
       return null;
     }
   }
 
-  static async set<T>(key: string, data: T, ttl: number = 300000): Promise<void> {
+  static async set<T>(
+    key: string,
+    data: T,
+    ttl: number = 300000
+  ): Promise<void> {
     try {
       const cachedData: CachedData<T> = {
         data,
@@ -142,7 +149,7 @@ class CacheManager {
       // Update AsyncStorage cache
       await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(cachedData));
     } catch (error) {
-      console.error('Cache set error:', error);
+      console.error("Cache set error:", error);
     }
   }
 
@@ -151,7 +158,7 @@ class CacheManager {
       this.cache.delete(key);
       await AsyncStorage.removeItem(`cache_${key}`);
     } catch (error) {
-      console.error('Cache remove error:', error);
+      console.error("Cache remove error:", error);
     }
   }
 
@@ -159,10 +166,10 @@ class CacheManager {
     try {
       this.cache.clear();
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      const cacheKeys = keys.filter((key) => key.startsWith("cache_"));
       await AsyncStorage.multiRemove(cacheKeys);
     } catch (error) {
-      console.error('Cache clear error:', error);
+      console.error("Cache clear error:", error);
     }
   }
 
@@ -175,13 +182,46 @@ class CacheManager {
 export class ApiService {
   private static baseURL = API_ENDPOINTS.BASE_URL;
   private static defaultHeaders = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
+  private static backendAwake = false;
+  private static wakeAttempted = false;
+
+  // Wake up backend (Render free tier spins down after inactivity)
+  private static async wakeBackend(): Promise<void> {
+    if (this.wakeAttempted) return;
+    this.wakeAttempted = true;
+
+    console.log("[API] Waking up backend...");
+    try {
+      const healthUrl = this.baseURL.replace("/api", "/health");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(healthUrl, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        this.backendAwake = true;
+        console.log("[API] Backend is awake and ready!");
+      }
+    } catch (error) {
+      console.warn(
+        "[API] Backend wake-up in progress, first request may be slow"
+      );
+    }
+  }
 
   // Initialize the service
   static async initialize(): Promise<void> {
     await RequestQueue.loadQueue();
-    
+
+    // Wake up backend
+    this.wakeBackend();
+
     // Set up network status monitoring
     // In a real app, you'd use NetInfo from @react-native-community/netinfo
     NetworkStatus.addListener((isOnline) => {
@@ -198,14 +238,16 @@ export class ApiService {
     cacheConfig?: CacheConfig
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    const method = options.method || 'GET';
-    
+    const method = options.method || "GET";
+
     // Start performance monitoring
     performanceMonitor.startApiCall(endpoint);
 
     // Check cache for GET requests
-    if (method === 'GET' && cacheConfig) {
-      const cachedData = await CacheManager.get<ApiResponse<T>>(cacheConfig.key);
+    if (method === "GET" && cacheConfig) {
+      const cachedData = await CacheManager.get<ApiResponse<T>>(
+        cacheConfig.key
+      );
       if (cachedData) {
         performanceMonitor.endApiCall(endpoint);
         return cachedData;
@@ -214,7 +256,7 @@ export class ApiService {
 
     // Get auth token
     const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    
+
     const requestOptions: RequestInit = {
       ...options,
       headers: {
@@ -226,8 +268,13 @@ export class ApiService {
 
     // Add timeout to prevent long waits
     const controller = new AbortController();
-    // Use longer timeout for POST requests (email sending can take time)
-    const timeoutDuration = method === 'POST' ? 30000 : 10000; // 30s for POST, 10s for others
+    // Use longer timeout for first requests (backend might be waking up)
+    const isFirstRequest = !this.backendAwake;
+    const timeoutDuration = isFirstRequest
+      ? 35000
+      : method === "POST"
+      ? 15000
+      : 8000;
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     requestOptions.signal = controller.signal;
 
@@ -235,15 +282,15 @@ export class ApiService {
       // Check network status
       if (!NetworkStatus.getStatus()) {
         clearTimeout(timeoutId);
-        if (method !== 'GET') {
+        if (method !== "GET") {
           // Queue non-GET requests for later
           await RequestQueue.addToQueue(url, requestOptions);
           return {
             success: false,
-            error: 'Request queued for when connection is restored',
+            error: "Request queued for when connection is restored",
           };
         } else {
-          throw new Error('No internet connection');
+          throw new Error("No internet connection");
         }
       }
 
@@ -251,30 +298,38 @@ export class ApiService {
       clearTimeout(timeoutId);
       const responseTime = performanceMonitor.endApiCall(endpoint);
 
+      // Mark backend as awake after first successful response
+      if (!this.backendAwake && response.ok) {
+        this.backendAwake = true;
+        console.log("[API] Backend confirmed awake");
+      }
+
       // Handle token expiration
       if (response.status === 401) {
-        console.log('[API] Received 401, attempting token refresh...');
+        console.log("[API] Received 401, attempting token refresh...");
         const refreshed = await this.handleTokenExpiration();
-        
+
         if (refreshed) {
           // Retry the original request with new token
-          console.log('[API] Retrying request with new token...');
+          console.log("[API] Retrying request with new token...");
           return this.request<T>(endpoint, options, cacheConfig);
         } else {
           // Clear tokens and throw error
-          console.log('[API] Token refresh failed, clearing session...');
+          console.log("[API] Token refresh failed, clearing session...");
           await AsyncStorage.multiRemove([
             STORAGE_KEYS.AUTH_TOKEN,
             STORAGE_KEYS.REFRESH_TOKEN,
             STORAGE_KEYS.USER_DATA,
           ]);
-          throw new Error('Session expired');
+          throw new Error("Session expired");
         }
       }
 
       if (!response.ok) {
         if (response.status === 304 && cacheConfig) {
-          const cachedData = await CacheManager.get<ApiResponse<T>>(cacheConfig.key);
+          const cachedData = await CacheManager.get<ApiResponse<T>>(
+            cacheConfig.key
+          );
           if (cachedData) {
             performanceMonitor.endApiCall(endpoint);
             return cachedData;
@@ -287,7 +342,7 @@ export class ApiService {
       const data: ApiResponse<T> = await response.json();
 
       // Cache successful GET responses
-      if (method === 'GET' && cacheConfig && data.success) {
+      if (method === "GET" && cacheConfig && data.success) {
         await CacheManager.set(cacheConfig.key, data, cacheConfig.ttl);
       }
 
@@ -295,36 +350,44 @@ export class ApiService {
     } catch (error) {
       clearTimeout(timeoutId);
       performanceMonitor.endApiCall(endpoint);
-      
+
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Request timeout - please check your connection');
+        if (error.name === "AbortError") {
+          const message = !this.backendAwake
+            ? "Backend is waking up from sleep. Please wait 30 seconds and try again."
+            : "Request timeout - please check your connection";
+          throw new Error(message);
         }
         throw error;
       }
-      
-      throw new Error('Network request failed');
+
+      throw new Error("Network request failed");
     }
   }
 
   // Handle token expiration
   private static async handleTokenExpiration(): Promise<boolean> {
     try {
-      const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const refreshToken = await AsyncStorage.getItem(
+        STORAGE_KEYS.REFRESH_TOKEN
+      );
       if (!refreshToken) {
-        console.log('[API] No refresh token available');
+        console.log("[API] No refresh token available");
         return false;
       }
 
-      console.log('[API] Attempting to refresh token...');
-      const response = await fetch(`${this.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
-        method: 'POST',
-        headers: this.defaultHeaders,
-        body: JSON.stringify({ refreshToken }),
-      });
+      console.log("[API] Attempting to refresh token...");
+      const response = await fetch(
+        `${this.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
+        {
+          method: "POST",
+          headers: this.defaultHeaders,
+          body: JSON.stringify({ refreshToken }),
+        }
+      );
 
       if (!response.ok) {
-        console.log('[API] Token refresh failed:', response.status);
+        console.log("[API] Token refresh failed:", response.status);
         return false;
       }
 
@@ -333,11 +396,11 @@ export class ApiService {
         [STORAGE_KEYS.AUTH_TOKEN, data.token],
         [STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken],
       ]);
-      
-      console.log('[API] Token refreshed successfully');
+
+      console.log("[API] Token refreshed successfully");
       return true;
     } catch (error) {
-      console.error('[API] Token refresh error:', error);
+      console.error("[API] Token refresh error:", error);
       return false;
     }
   }
@@ -347,34 +410,28 @@ export class ApiService {
     endpoint: string,
     cacheConfig?: CacheConfig
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' }, cacheConfig);
+    return this.request<T>(endpoint, { method: "GET" }, cacheConfig);
   }
 
   // POST request
-  static async post<T>(
-    endpoint: string,
-    data?: any
-  ): Promise<ApiResponse<T>> {
+  static async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   // PUT request
-  static async put<T>(
-    endpoint: string,
-    data?: any
-  ): Promise<ApiResponse<T>> {
+  static async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   // DELETE request
   static async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    return this.request<T>(endpoint, { method: "DELETE" });
   }
 
   // Paginated GET request
@@ -398,7 +455,7 @@ export class ApiService {
     }
   ): Promise<ApiResponse<T>> {
     const formData = new FormData();
-    formData.append('file', {
+    formData.append("file", {
       uri: file.uri,
       type: file.type,
       name: file.name,
@@ -407,9 +464,9 @@ export class ApiService {
     const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
         ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: formData,
@@ -424,7 +481,7 @@ export class ApiService {
       data?: any;
     }>
   ): Promise<ApiResponse<T[]>> {
-    return this.post<T[]>('/batch', { requests });
+    return this.post<T[]>("/batch", { requests });
   }
 
   // Clear all caches
@@ -439,10 +496,10 @@ export class ApiService {
   }> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      const cacheKeys = keys.filter((key) => key.startsWith("cache_"));
       return {
         size: cacheKeys.length,
-        keys: cacheKeys.map(key => key.replace('cache_', '')),
+        keys: cacheKeys.map((key) => key.replace("cache_", "")),
       };
     } catch (error) {
       return { size: 0, keys: [] };
@@ -462,13 +519,25 @@ export class ApiService {
 
 // Performance-monitored API service
 export const apiService = {
-  get: withPerformanceMonitoring(ApiService.get.bind(ApiService), 'api_get'),
-  post: withPerformanceMonitoring(ApiService.post.bind(ApiService), 'api_post'),
-  put: withPerformanceMonitoring(ApiService.put.bind(ApiService), 'api_put'),
-  delete: withPerformanceMonitoring(ApiService.delete.bind(ApiService), 'api_delete'),
-  getPaginated: withPerformanceMonitoring(ApiService.getPaginated.bind(ApiService), 'api_paginated'),
-  uploadFile: withPerformanceMonitoring(ApiService.uploadFile.bind(ApiService), 'api_upload'),
-  batch: withPerformanceMonitoring(ApiService.batch.bind(ApiService), 'api_batch'),
+  get: withPerformanceMonitoring(ApiService.get.bind(ApiService), "api_get"),
+  post: withPerformanceMonitoring(ApiService.post.bind(ApiService), "api_post"),
+  put: withPerformanceMonitoring(ApiService.put.bind(ApiService), "api_put"),
+  delete: withPerformanceMonitoring(
+    ApiService.delete.bind(ApiService),
+    "api_delete"
+  ),
+  getPaginated: withPerformanceMonitoring(
+    ApiService.getPaginated.bind(ApiService),
+    "api_paginated"
+  ),
+  uploadFile: withPerformanceMonitoring(
+    ApiService.uploadFile.bind(ApiService),
+    "api_upload"
+  ),
+  batch: withPerformanceMonitoring(
+    ApiService.batch.bind(ApiService),
+    "api_batch"
+  ),
   clearCache: ApiService.clearCache.bind(ApiService),
   getCacheStatus: ApiService.getCacheStatus.bind(ApiService),
   retryFailedRequests: ApiService.retryFailedRequests.bind(ApiService),
