@@ -249,6 +249,32 @@ export const transactionAPI = {
 
     return { success: true, data: response.data };
   },
+
+  // Split operations
+  createSplit: async (transactionId, splitConfig) => {
+    console.log('[API] Creating split for transaction:', transactionId);
+    console.log('[API] Split config:', splitConfig);
+    
+    const payload = {
+      splitType: splitConfig.splitType,
+      paidBy: splitConfig.paidBy,
+      participants: (splitConfig.participants || []).map(p => ({
+        user: p.userId || p._id || p.user || undefined,
+        share: p.share || 0,
+        percentage: p.percentage,
+      }))
+    };
+
+    console.log('[API] Split payload:', payload);
+
+    const response = await apiRequest(`/transactions/${transactionId}/split`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, true); // Invalidate cache
+
+    console.log('[API] Split created successfully:', response);
+    return { success: true, data: response.data };
+  },
 };
 
 export default { authAPI, transactionAPI };

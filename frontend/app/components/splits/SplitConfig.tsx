@@ -300,7 +300,7 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
     setErrors(validation.errors);
     
     if (validation.isValid) {
-      onSplitChange({ splitType, participants: newShares, paidBy });
+      onSplitChange({ splitType, participants: newShares, paidBy: paidByUserId });
     }
   };
 

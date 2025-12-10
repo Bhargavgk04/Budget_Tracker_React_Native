@@ -14,7 +14,7 @@ const categoryRoutes = require("./routes/categories");
 const budgetRoutes = require("./routes/budgets");
 const userRoutes = require("./routes/users");
 const friendRoutes = require("./routes/friends");
-const splitRoutes = require("./routes/splits");
+// Split routes are now part of transaction routes
 const settlementRoutes = require("./routes/settlements");
 const groupRoutes = require("./routes/groups");
 const notificationRoutes = require("./routes/notifications");
@@ -137,7 +137,7 @@ app.use("/api/budgets", authMiddleware, budgetRoutes);
 app.use("/api/users", authMiddleware, userRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
 app.use("/api/friends", authMiddleware, friendRoutes);
-app.use("/api/splits", authMiddleware, splitRoutes);
+// Split routes are now part of transaction routes
 app.use("/api/settlements", authMiddleware, settlementRoutes);
 app.use("/api/groups", authMiddleware, groupRoutes);
 app.use("/api/notifications", authMiddleware, notificationRoutes);
@@ -155,7 +155,7 @@ app.get("/", (req, res) => {
       categories: "/api/categories",
       users: "/api/users",
       friends: "/api/friends",
-      splits: "/api/splits",
+      splits: "/api/transactions", // Split endpoints are under transactions
       settlements: "/api/settlements",
       groups: "/api/groups",
       notifications: "/api/notifications",

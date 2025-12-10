@@ -619,17 +619,26 @@ transactionSchema.statics.calculateBalanceBetweenUsers = async function(userId1,
     const user1Share = transaction.getUserShare(userId1);
     const user2Share = transaction.getUserShare(userId2);
     
+    // Skip if either user is not a participant
     if (!user1Share || !user2Share) return;
     
     const paidByUser1 = transaction.splitInfo.paidBy.toString() === userId1.toString();
     const paidByUser2 = transaction.splitInfo.paidBy.toString() === userId2.toString();
     
     if (paidByUser1) {
-      // User1 paid, so User2 owes User1
+      // User1 paid, so User2 owes User1 their share
+      // But User1 also owes for their own share, so net effect is User2's share
       balance += user2Share.share;
     } else if (paidByUser2) {
-      // User2 paid, so User1 owes User2
+      // User2 paid, so User1 owes User2 their share
+      // But User2 also owes for their own share, so net effect is User1's share (negative)
       balance -= user1Share.share;
+    } else {
+      // Third party paid - both users owe their respective shares to the payer
+      // In terms of balance between user1 and user2, this doesn't affect their mutual balance
+      // unless they settle with each other instead of the payer
+      // For now, we don't include third-party payments in bilateral balance
+      // This could be enhanced later to support complex settlement scenarios
     }
   });
   

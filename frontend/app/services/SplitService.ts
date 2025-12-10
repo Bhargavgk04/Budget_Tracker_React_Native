@@ -1,5 +1,4 @@
 import { SplitConfig, SplitFormData, SharedTransaction } from '@/types';
-import { apiService } from './ApiService';
 
 export class SplitService {
   /**
@@ -74,15 +73,24 @@ export class SplitService {
    * Calculate equal split
    */
   static calculateEqualSplit(amount: number, participantCount: number): number[] {
-    const baseShare = Math.floor((amount * 100) / participantCount) / 100;
-    const remainder = Math.round((amount - (baseShare * participantCount)) * 100) / 100;
-    
-    const shares = new Array(participantCount).fill(baseShare);
-    if (remainder > 0) {
-      shares[0] += remainder;
+    if (participantCount <= 0) {
+      throw new Error('Participant count must be positive');
     }
+
+    // Convert to cents to avoid floating point precision issues
+    const totalCents = Math.round(amount * 100);
+    const baseShareCents = Math.floor(totalCents / participantCount);
+    const remainderCents = totalCents - (baseShareCents * participantCount);
+
+    const shares = new Array(participantCount).fill(baseShareCents);
     
-    return shares;
+    // Distribute remainder cents to first participants
+    for (let i = 0; i < remainderCents; i++) {
+      shares[i] += 1;
+    }
+
+    // Convert back to dollars
+    return shares.map(cents => Math.round(cents) / 100);
   }
 
   /**
@@ -123,27 +131,18 @@ export class SplitService {
    */
   static async createSplit(transactionId: string, splitConfig: SplitFormData): Promise<SharedTransaction> {
     try {
-      const payload = {
-        splitType: splitConfig.splitType,
-        paidBy: splitConfig.paidBy,
-        participants: (splitConfig.participants || []).map(p => ({
-          user: (p as any)._id || (p as any).userId || (p as any).user || undefined,
-          share: p.share || 0,
-          percentage: p.percentage,
-        }))
-      };
-
-      const response = await apiService.post<SharedTransaction>(
-        `/transactions/${transactionId}/split`,
-        payload
-      );
+      // Use the same API service as transaction creation
+      const { transactionAPI } = await import('./api');
       
-      if (!response.success || !response.data) {
+      const response = await transactionAPI.createSplit(transactionId, splitConfig);
+      
+      if (!response.success) {
         throw new Error(response.error || 'Failed to create split');
       }
 
       return response.data;
     } catch (error) {
+      console.error('[SplitService] Split creation error:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to create split');
     }
   }
@@ -156,7 +155,7 @@ export class SplitService {
       const payload = {
         splitType: splitConfig.splitType,
         participants: (splitConfig.participants || []).map(p => ({
-          user: (p as any)._id || (p as any).userId || (p as any).user || undefined,
+          user: (p as any).userId || (p as any)._id || (p as any).user || undefined,
           share: p.share || 0,
           percentage: p.percentage,
         }))
@@ -233,6 +232,46 @@ export class SplitService {
       return response.data;
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Failed to get shared transactions');
+    }
+  }
+
+  /**
+   * Get detailed balance between current user and a friend
+   */
+  static async getDetailedBalance(friendId: string): Promise<any> {
+    try {
+      const response = await apiService.get(`/transactions/balance/${friendId}`);
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to get balance details');
+      }
+
+      return response.data;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to get balance details');
+    }
+  }
+
+  /**
+   * Get split transaction summary for current user
+   */
+  static async getSplitSummary(filters?: any): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.startDate) params.append('startDate', filters.startDate.toISOString());
+      if (filters?.endDate) params.append('endDate', filters.endDate.toISOString());
+      if (filters?.groupId) params.append('groupId', filters.groupId);
+
+      const endpoint = `/transactions/split-summary${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await apiService.get(endpoint);
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to get split summary');
+      }
+
+      return response.data;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to get split summary');
     }
   }
 }

@@ -80,6 +80,9 @@ export default function MainNavigator() {
               case 'Home':
                 iconName = 'dashboard';
                 break;
+              case 'Transactions':
+                iconName = 'list';
+                break;
               case 'Add':
                 iconName = 'add-circle';
                 break;
@@ -112,6 +115,14 @@ export default function MainNavigator() {
           options={{
             tabBarLabel: 'Home',
           }}
+        />
+        <Tab.Screen
+          name="Transactions"
+          component={HomeNavigator}
+          options={{
+            tabBarLabel: 'Transactions',
+          }}
+          initialParams={{ screen: 'Transactions' }}
         />
         <Tab.Screen
           name="Add"

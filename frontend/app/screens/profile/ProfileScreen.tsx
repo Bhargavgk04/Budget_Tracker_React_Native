@@ -249,6 +249,12 @@ export default function ProfileScreen({ navigation }: any) {
                 <Text style={[styles.userEmail, { color: theme.colors.onSurface + '99' }]}>
                   {user?.email || 'user@example.com'}
                 </Text>
+                <View style={styles.uidContainer}>
+                  <MaterialIcons name="fingerprint" size={16} color={theme.colors.primary} />
+                  <Text style={[styles.userUid, { color: theme.colors.primary }]}>
+                    UID: {user?.uid || 'N/A'}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   style={[styles.editButton, { backgroundColor: theme.colors.primary + '20' }]}
                   onPress={handleEditProfile}
@@ -360,6 +366,23 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     marginTop: 4,
+  },
+  uidContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 16,
+    alignSelf: 'center',
+  },
+  userUid: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+    letterSpacing: 1,
   },
   statsCard: {
     borderRadius: 16,

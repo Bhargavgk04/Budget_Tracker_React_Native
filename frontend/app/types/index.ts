@@ -3,13 +3,13 @@ import { TextStyle } from 'react-native';
 // Core data types for the Budget Tracker App
 export interface User {
   id: string;
+  uid: string;
   email: string;
   name: string;
   currency: string;
   preferences: UserPreferences;
   createdAt: Date;
   updatedAt: Date;
-  uid?: string;
   profilePicture?: string;
 }
 

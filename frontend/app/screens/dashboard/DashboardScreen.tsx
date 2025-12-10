@@ -188,6 +188,32 @@ function DashboardScreen({ navigation }: any) {
     navigation.navigate('Transactions');
   };
 
+  const navigateToSplitManagement = () => {
+    navigation.navigate('SplitManagement');
+  };
+
+  const renderSplitManagementCard = () => (
+    <Animated.View entering={FadeInUp.delay(200)} style={styles.splitManagementCard}>
+      <TouchableOpacity onPress={navigateToSplitManagement} style={styles.splitManagementContent}>
+        <View style={styles.splitManagementHeader}>
+          <MaterialIcons name="call-split" size={24} color={theme.colors.primary} />
+          <Text style={[styles.splitManagementTitle, { color: theme.colors.textPrimary }]}>
+            Split Management
+          </Text>
+        </View>
+        <Text style={[styles.splitManagementDescription, { color: theme.colors.textSecondary }]}>
+          Manage shared expenses and settle up with friends
+        </Text>
+        <View style={styles.splitManagementAction}>
+          <Text style={[styles.splitManagementActionText, { color: theme.colors.primary }]}>
+            View Splits
+          </Text>
+          <MaterialIcons name="arrow-forward" size={16} color={theme.colors.primary} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
 
 
   const renderSummaryCard = () => (
@@ -713,6 +739,44 @@ function DashboardScreen({ navigation }: any) {
       color: theme.colors.onSurface + '40',
       marginTop: theme.spacing.xs,
     },
+    splitManagementCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius?.xl || theme.borderRadius.lg,
+      marginBottom: theme.spacing.lg,
+      marginHorizontal: theme.spacing.md,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    splitManagementContent: {
+      padding: theme.spacing.lg,
+    },
+    splitManagementHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.spacing.sm,
+    },
+    splitManagementTitle: {
+      ...theme.typography.h3,
+      fontWeight: '600',
+      marginLeft: theme.spacing.sm,
+    },
+    splitManagementDescription: {
+      ...theme.typography.body2,
+      marginBottom: theme.spacing.md,
+    },
+    splitManagementAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    splitManagementActionText: {
+      ...theme.typography.body2,
+      fontWeight: '500',
+      marginRight: theme.spacing.xs,
+    },
   }), [theme]);
 
   return (
@@ -743,6 +807,7 @@ function DashboardScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
         >
           {renderSummaryCard()}
+          {renderSplitManagementCard()}
           {renderCategoryChart()}
           {renderRecentTransactions()}
         </ScrollView>

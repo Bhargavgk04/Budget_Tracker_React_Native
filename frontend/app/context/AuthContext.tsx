@@ -547,6 +547,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Create demo user data
       const demoUser: User = {
         id: 'demo-user-123',
+        uid: 'DEMO123',
         email: 'demo@example.com',
         name: 'Demo User',
         currency: 'USD',

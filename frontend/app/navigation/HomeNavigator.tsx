@@ -5,6 +5,7 @@ import DashboardScreen from '@/screens/dashboard/DashboardScreen';
 import TransactionListScreen from '@/screens/transactions/TransactionListScreen';
 import TransactionDetailsScreen from '@/screens/transactions/TransactionDetailsScreen';
 import CategoryDetailsScreen from '@/screens/categories/CategoryDetailsScreen';
+import SplitManagementScreen from '@/screens/splits/SplitManagementScreen';
 import { defaultScreenOptions, screenTransitions } from './transitions';
 
 const Stack = createStackNavigator();
@@ -34,6 +35,14 @@ export default function HomeNavigator() {
         name="CategoryDetails" 
         component={CategoryDetailsScreen}
         options={screenTransitions.CategoryDetails}
+      />
+      <Stack.Screen 
+        name="SplitManagement" 
+        component={SplitManagementScreen}
+        options={{
+          title: 'Split Management',
+          headerShown: false,
+        }}
       />
     </Stack.Navigator>
   );

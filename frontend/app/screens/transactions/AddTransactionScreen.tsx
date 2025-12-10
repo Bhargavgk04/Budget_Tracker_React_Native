@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -45,6 +46,9 @@ const AddTransactionScreen = ({
   const { user } = useAuth();
   const { addTransaction: addTransactionToContext } = useTransactions();
   
+  // Helper function to get consistent user ID
+  const getUserId = () => user?._id || user?.id || "";
+  
   // Debug mount and initial params
   useEffect(() => {
     console.log('AddTransactionScreen mounted with route params:', route?.params);
@@ -70,6 +74,7 @@ const AddTransactionScreen = ({
   // UI state
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
@@ -151,6 +156,45 @@ const AddTransactionScreen = ({
       return;
     }
 
+    // Validate split configuration if present
+    if (splitConfig && selectedFriends.length > 0) {
+      try {
+        const SplitService = (await import("@/services/SplitService")).default;
+        const validation = SplitService.validateSplit(
+          parseFloat(amount), 
+          splitConfig.splitType, 
+          splitConfig.participants
+        );
+        
+        if (!validation.isValid) {
+          Alert.alert("Split Configuration Error", validation.errors.join('\n'));
+          return;
+        }
+
+        // Additional validation: ensure all participants have valid user IDs
+        const invalidParticipants = splitConfig.participants.filter(p => 
+          !(p as any).userId && !(p as any)._id && !(p as any).user
+        );
+        
+        if (invalidParticipants.length > 0) {
+          Alert.alert("Split Configuration Error", "Some participants are missing user information. Please reselect your friends.");
+          return;
+        }
+
+        // Ensure paidBy is set correctly
+        if (!splitConfig.paidBy || splitConfig.paidBy !== getUserId()) {
+          Alert.alert("Split Configuration Error", "Invalid payer information. Please try again.");
+          return;
+        }
+
+        console.log('Split configuration validation passed');
+      } catch (error) {
+        console.error('Split validation error:', error);
+        Alert.alert("Split Validation Error", "Failed to validate split configuration. Please check your settings.");
+        return;
+      }
+    }
+
     // Show loading briefly for user feedback
     setIsLoading(true);
     
@@ -159,7 +203,7 @@ const AddTransactionScreen = ({
       category,
       type,
       paymentMode,
-      date: new Date().toISOString(), // Use current time to avoid future date issues
+      date: date.toISOString(), // Use selected date
     };
     
     // Only add notes if it has a value
@@ -191,11 +235,63 @@ const AddTransactionScreen = ({
         // Handle split creation if configured
         const createdId = result.data?._id || result.data?.id;
         if (splitConfig && createdId) {
-          try {
-            const SplitService = (await import("@/services/SplitService")).default;
-            await SplitService.createSplit(createdId, splitConfig);
-          } catch (e) {
-            console.warn('Failed to create split:', e);
+          console.log('Creating split for transaction:', createdId);
+          console.log('Split configuration:', JSON.stringify(splitConfig, null, 2));
+          
+          // Retry split creation up to 3 times
+          let splitSuccess = false;
+          let lastError = null;
+          
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              console.log(`Split creation attempt ${attempt}/3`);
+              const SplitService = (await import("@/services/SplitService")).default;
+              const splitResult = await SplitService.createSplit(createdId, splitConfig);
+              console.log('Split created successfully:', splitResult);
+              splitSuccess = true;
+              break;
+            } catch (e) {
+              console.error(`Split creation attempt ${attempt} failed:`, e);
+              lastError = e;
+              
+              // Wait a bit before retrying (except on last attempt)
+              if (attempt < 3) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+          }
+          
+          // If all attempts failed, show error and don't proceed
+          if (!splitSuccess) {
+            console.error('All split creation attempts failed:', lastError);
+            Alert.alert(
+              "Split Creation Failed", 
+              "Failed to create split configuration. Please try again.",
+              [
+                { 
+                  text: "Retry", 
+                  onPress: () => {
+                    // Don't reset form, let user try again
+                    setIsLoading(false);
+                  }
+                },
+                { 
+                  text: "Cancel", 
+                  style: "cancel",
+                  onPress: () => {
+                    setIsLoading(false);
+                    // Reset form
+                    setAmount("");
+                    setCategory("");
+                    setNotes("");
+                    setSelectedFriends([]);
+                    setShowSplitConfig(false);
+                    setSplitConfig(null);
+                  }
+                }
+              ]
+            );
+            return; // Don't show success or navigate
           }
         }
       }
@@ -212,7 +308,10 @@ const AddTransactionScreen = ({
       setSplitConfig(null);
       
       // Show success and navigate back
-      Alert.alert("Success", "Transaction added successfully");
+      const successMessage = splitConfig && selectedFriends.length > 0 
+        ? "Transaction and split created successfully" 
+        : "Transaction added successfully";
+      Alert.alert("Success", successMessage);
       navigation.goBack();
       
     } catch (error) {
@@ -338,6 +437,39 @@ const AddTransactionScreen = ({
       if (amountInputRef.current) {
         amountInputRef.current.focus();
       }
+    });
+  };
+
+  // Handle date change
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  // Format date for display
+  const formatDateForDisplay = (date: Date): string => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Check if it's today
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
+    
+    // Check if it's yesterday
+    if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    }
+    
+    // Format as readable date
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
     });
   };
 
@@ -663,6 +795,67 @@ const AddTransactionScreen = ({
               
             </View>
 
+            {/* Date Selection */}
+            <View 
+              style={[
+                styles.card,
+                {
+                  backgroundColor: theme.colors.surface,
+                  ...(theme.shadows ? theme.shadows.md : {})
+                }
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+                Date
+              </Text>
+              
+              <TouchableOpacity
+                style={[
+                  styles.dateSelector,
+                  {
+                    backgroundColor: theme.colors.surfaceVariant,
+                    borderColor: theme.colors.border,
+                  }
+                ]}
+                onPress={() => setShowDatePicker(true)}
+                accessibilityLabel="Select date"
+                accessibilityHint="Tap to select the date for this transaction"
+              >
+                <View style={styles.dateSelectorContent}>
+                  <MaterialIcons 
+                    name="calendar-today" 
+                    size={20} 
+                    color={theme.colors.primary} 
+                  />
+                  <Text 
+                    style={[
+                      styles.dateSelectorText,
+                      { color: theme.colors.textPrimary }
+                    ]}
+                  >
+                    {formatDateForDisplay(date)}
+                  </Text>
+                  <Text 
+                    style={[
+                      styles.dateFullText,
+                      { color: theme.colors.textSecondary }
+                    ]}
+                  >
+                    {date.toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                </View>
+                <MaterialIcons 
+                  name="keyboard-arrow-down" 
+                  size={24} 
+                  color={theme.colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+
             {/* Payment Mode */}
             <View 
               style={[
@@ -810,12 +1003,12 @@ const AddTransactionScreen = ({
                 <SplitConfig
                   totalAmount={parseFloat(amount)}
                   participants={[
-                    { _id: user?.id || "", uid: user?.uid || "", name: user?.name || "You", email: "", balance: { amount: 0, direction: 'settled' }, friendshipStatus: 'accepted', friendshipId: "" },
+                    { _id: getUserId(), uid: user?.uid || "", name: user?.name || "You", email: "", balance: { amount: 0, direction: 'settled' }, friendshipStatus: 'accepted', friendshipId: "" },
                     ...selectedFriends
                   ]}
                   splitType="equal"
                   onSplitChange={handleSplitChange}
-                  paidBy={user?.id || ""}
+                  paidBy={getUserId()}
                 />
               </View>
             )}
@@ -838,6 +1031,18 @@ const AddTransactionScreen = ({
           </ScrollView>
         </KeyboardAvoidingView>
       </Animated.View>
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          maximumDate={new Date()} // Prevent future dates
+          minimumDate={new Date(2020, 0, 1)} // Reasonable minimum date
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -848,6 +1053,230 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  amountCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  currencySymbol: {
+    fontSize: 32,
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  amountInput: {
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
+    minWidth: 120,
+    borderBottomWidth: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  clearButton: {
+    marginLeft: 12,
+    padding: 8,
+  },
+  amountDisplay: {
+    fontSize: 14,
+    marginTop: 8,
+  },
+  amountPlaceholder: {
+    fontSize: 14,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 8,
+  },
+  typeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  activeTypeButton: {
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  typeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  categorySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  categorySelectorText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  categoryIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  dateSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  dateSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  dateSelectorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+  dateFullText: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  paymentModes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  paymentModeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  paymentModeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  notesInput: {
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    minHeight: 80,
+    borderWidth: 1,
+  },
+  friendSelectorContainer: {
+    marginBottom: 8,
+  },
+  selectedFriendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 8,
+  },
+  selectedFriendText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  clearFriendsButton: {
+    padding: 4,
+  },
+  splitConfigContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  submitButton: {
+    marginTop: 8,
+    marginBottom: 16,
+  },rizontal: 16,
     paddingTop: 16,
     paddingBottom: 24,
   },
