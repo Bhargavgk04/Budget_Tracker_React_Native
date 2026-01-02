@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  owner: 'bhargavgk',
+  owner: 'bhargavgk1104',
   name: 'Budget Tracker',
   slug: 'mobile-budget-tracker',
   version: '1.0.0',
@@ -30,7 +30,6 @@ module.exports = {
       backgroundColor: '#6366F1'
     },
     package: 'com.bhargavgk.mobilebudgettracker',
-    versionCode: 1,
     permissions: ['INTERNET', 'ACCESS_NETWORK_STATE']
   },
   web: {
@@ -46,7 +45,7 @@ module.exports = {
   },
   extra: {
     eas: {
-      projectId: '65ee79b5-5180-46c2-937a-005107b3ae7b'
+      projectId: '69b1d27b-0b9a-4b58-8bce-c87b95b29c51'
     },
     apiUrl: 'https://budget-tracker-react-native-kjff.onrender.com/api'
   },

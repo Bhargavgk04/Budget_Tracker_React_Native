@@ -171,13 +171,19 @@ const AddTransactionScreen = ({
           return;
         }
 
-        // Additional validation: ensure all participants have valid user IDs
-        const invalidParticipants = splitConfig.participants.filter(p => 
-          !(p as any).userId && !(p as any)._id && !(p as any).user
-        );
+        // Additional validation: ensure all participants have valid user IDs and ObjectId format
+        const invalidParticipants = splitConfig.participants.filter(p => {
+          const userId = (p as any).userId || (p as any)._id || (p as any).user;
+          // Check if userId exists and is a valid ObjectId format (24 hex characters)
+          return !userId || (typeof userId === 'string' && !/^[0-9a-fA-F]{24}$/.test(userId));
+        });
         
         if (invalidParticipants.length > 0) {
-          Alert.alert("Split Configuration Error", "Some participants are missing user information. Please reselect your friends.");
+          const invalidNames = invalidParticipants.map(p => (p as any).name).join(', ');
+          Alert.alert(
+            "Split Configuration Error", 
+            `Some friends (${invalidNames}) are not properly registered. Please make sure all friends are added to your friend list before creating splits.`
+          );
           return;
         }
 
@@ -254,6 +260,12 @@ const AddTransactionScreen = ({
               console.error(`Split creation attempt ${attempt} failed:`, e);
               lastError = e;
               
+              // Check if it's an ObjectId validation error
+              if (e.message && e.message.includes('Cast to ObjectId failed')) {
+                console.error('ObjectId validation error - stopping retries');
+                break; // Don't retry for validation errors
+              }
+              
               // Wait a bit before retrying (except on last attempt)
               if (attempt < 3) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -264,9 +276,16 @@ const AddTransactionScreen = ({
           // If all attempts failed, show error and don't proceed
           if (!splitSuccess) {
             console.error('All split creation attempts failed:', lastError);
+            
+            // Check if it's an ObjectId validation error and provide specific message
+            let errorMessage = "Failed to create split configuration. Please try again.";
+            if (lastError?.message && lastError.message.includes('Cast to ObjectId failed')) {
+              errorMessage = "Some selected friends are not properly registered. Please make sure all friends are added to your friend list first.";
+            }
+            
             Alert.alert(
               "Split Creation Failed", 
-              "Failed to create split configuration. Please try again.",
+              errorMessage,
               [
                 { 
                   text: "Retry", 
@@ -1271,217 +1290,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-  },
-  submitButton: {
-    marginTop: 8,
-    marginBottom: 16,
-  },rizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  content: {
-    flex: 1,
-    marginTop: -20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100, // Extra padding to ensure FriendSelector dropdown has space
-  },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  amountCard: {
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  subSectionTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 12,
-  },
-  amountInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-    position: 'relative',
-  },
-  currencySymbol: {
-    fontSize: 28,
-    fontWeight: "600",
-    marginRight: 8,
-  },
-  amountInput: {
-    fontSize: 32,
-    fontWeight: "700",
-    textAlign: "center",
-    paddingVertical: 8,
-    minWidth: 150,
-    borderBottomWidth: 2,
-  },
-  clearButton: {
-    position: 'absolute',
-    right: 10,
-    padding: 5,
-  },
-  amountDisplay: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 8,
-  },
-  amountPlaceholder: {
-    fontSize: 14,
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  typeToggleContainer: {
-    flexDirection: "row",
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  activeTypeButton: {
-    borderWidth: 0,
-  },
-  typeButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  categorySelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  categorySelectorText: {
-    fontSize: 16,
-    flex: 1,
-  },
-  quickCategories: {
-    marginTop: 16,
-  },
-  categoryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  categoryItem: {
-    width: "48%",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  categoryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: "500",
-    flex: 1,
-  },
-  paymentModes: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  paymentModeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 12,
-    marginRight: 12,
-  },
-  activePaymentModeButton: {
-    borderWidth: 0,
-  },
-  paymentModeText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  notesInput: {
-    minHeight: 100,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  friendSelectorContainer: {
-    position: 'relative',
-    zIndex: 1000,
-  },
-  selectedFriendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-  },
-  selectedFriendText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  clearFriendsButton: {
-    padding: 4,
-    borderRadius: 12,
-  },
-  splitConfigContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
     marginBottom: 16,
   },
   submitButton: {

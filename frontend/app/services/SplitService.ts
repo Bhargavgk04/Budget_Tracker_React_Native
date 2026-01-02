@@ -161,10 +161,8 @@ export class SplitService {
         }))
       };
 
-      const response = await apiService.put<SharedTransaction>(
-        `/transactions/${transactionId}/split`,
-        payload
-      );
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.updateSplit(transactionId, payload);
       
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to update split');
@@ -181,7 +179,8 @@ export class SplitService {
    */
   static async removeSplit(transactionId: string): Promise<void> {
     try {
-      const response = await apiService.delete(`/transactions/${transactionId}/split`);
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.deleteSplit(transactionId);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to remove split');
@@ -196,10 +195,8 @@ export class SplitService {
    */
   static async markParticipantSettled(transactionId: string, userId: string): Promise<SharedTransaction> {
     try {
-      const response = await apiService.post<SharedTransaction>(
-        `/transactions/${transactionId}/split/settle/${userId}`,
-        {}
-      );
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.settleParticipant(transactionId, userId);
       
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to mark participant as settled');
@@ -223,7 +220,8 @@ export class SplitService {
       if (filters?.category) params.append('category', filters.category);
 
       const endpoint = `/transactions/shared${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await apiService.get<SharedTransaction[]>(endpoint);
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.getSharedTransactions(filters);
       
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to get shared transactions');
@@ -240,7 +238,8 @@ export class SplitService {
    */
   static async getDetailedBalance(friendId: string): Promise<any> {
     try {
-      const response = await apiService.get(`/transactions/balance/${friendId}`);
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.getDetailedBalance(friendId);
       
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to get balance details');
@@ -263,7 +262,8 @@ export class SplitService {
       if (filters?.groupId) params.append('groupId', filters.groupId);
 
       const endpoint = `/transactions/split-summary${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await apiService.get(endpoint);
+      const { transactionAPI } = await import('./api');
+      const response = await transactionAPI.getSplitSummary(filters);
       
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to get split summary');

@@ -39,48 +39,174 @@ export default function HomeScreen({ navigation }: any) {
     savingsRate: 0,
   });
 
+  const [totalBalance, setTotalBalance] = useState({
+    totalIncome: 0,
+    totalExpense: 0,
+    overallBalance: 0,
+  });
+
   // Calculate real data from transactions
   const recentTransactions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    
+    // Sort by date (most recent first) and take first 5
     return transactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
-      .map(t => ({
-        id: t.id,
-        description: t.notes || 'No description',
-        category: t.category,
-        amount: t.amount,
-        date: new Date(t.date),
-        type: t.type,
-      }));
+      .map(t => {
+        // For shared transactions, show the user's split amount instead of full amount
+        let displayAmount = t.amount;
+        let isShared = false;
+        
+        if (t.splitInfo && t.splitInfo.isShared && t.splitInfo.participants) {
+          isShared = true;
+          // Find current user's share in the split
+          const userParticipant = t.splitInfo.participants.find(p => 
+            p.user === t.userId || p.user?._id === t.userId
+          );
+          if (userParticipant && userParticipant.share) {
+            displayAmount = userParticipant.share;
+            console.log('[HomeScreen] Split transaction found:', {
+              fullAmount: t.amount,
+              userShare: displayAmount,
+              transactionId: t.id || t._id
+            });
+          }
+        }
+        
+        return {
+          id: t.id || t._id,
+          description: t.notes || t.description || 'No description',
+          category: t.category,
+          amount: displayAmount,
+          fullAmount: t.amount, // Keep full amount for reference
+          isShared,
+          date: new Date(t.date),
+          type: t.type,
+        };
+      });
+  }, [transactions]);
+
+  // Calculate overall balance (all time)
+  const calculateTotalBalance = useCallback(() => {
+    try {
+      if (!transactions || transactions.length === 0) {
+        setTotalBalance({ totalIncome: 0, totalExpense: 0, overallBalance: 0 });
+        return;
+      }
+
+      console.log('[HomeScreen] Calculating total balance for', transactions.length, 'transactions');
+
+      const totalIncome = transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => {
+          // For shared income, use user's split amount
+          let amount = t.amount || 0;
+          if (t.splitInfo && t.splitInfo.isShared && t.splitInfo.participants) {
+            const userParticipant = t.splitInfo.participants.find(p => 
+              p.user === t.userId || p.user?._id === t.userId
+            );
+            if (userParticipant && userParticipant.share) {
+              amount = userParticipant.share;
+            }
+          }
+          return sum + amount;
+        }, 0);
+      
+      const totalExpense = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => {
+          // For shared expenses, use user's split amount
+          let amount = t.amount || 0;
+          if (t.splitInfo && t.splitInfo.isShared && t.splitInfo.participants) {
+            const userParticipant = t.splitInfo.participants.find(p => 
+              p.user === t.userId || p.user?._id === t.userId
+            );
+            if (userParticipant && userParticipant.share) {
+              amount = userParticipant.share;
+            }
+          }
+          return sum + amount;
+        }, 0);
+
+      const overallBalance = totalIncome - totalExpense;
+
+      console.log('[HomeScreen] Total balance calculated - Income:', totalIncome, 'Expense:', totalExpense, 'Balance:', overallBalance);
+      setTotalBalance({ totalIncome, totalExpense, overallBalance });
+    } catch (error) {
+      console.error('[HomeScreen] Error calculating total balance:', error);
+      setTotalBalance({ totalIncome: 0, totalExpense: 0, overallBalance: 0 });
+    }
   }, [transactions]);
 
   // Calculate monthly stats
-  const calculateMonthlyStats = async () => {
+  const calculateMonthlyStats = useCallback(() => {
     try {
+      if (!transactions || transactions.length === 0) {
+        setMonthlyStats({ income: 0, expense: 0, balance: 0, savingsRate: 0 });
+        return;
+      }
+
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+      console.log('[HomeScreen] Calculating stats for', transactions.length, 'transactions');
+      console.log('[HomeScreen] Month range:', startOfMonth.toDateString(), 'to', endOfMonth.toDateString());
+
       const monthTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
-        return transactionDate >= startOfMonth && transactionDate <= endOfMonth;
+        const isInMonth = transactionDate >= startOfMonth && transactionDate <= endOfMonth;
+        if (isInMonth) {
+          console.log('[HomeScreen] Month transaction:', t.type, t.amount, transactionDate.toDateString());
+        }
+        return isInMonth;
       });
+
+      console.log('[HomeScreen] Found', monthTransactions.length, 'transactions this month');
 
       const income = monthTransactions
         .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => {
+          // For shared income, use user's split amount
+          let amount = t.amount || 0;
+          if (t.splitInfo && t.splitInfo.isShared && t.splitInfo.participants) {
+            const userParticipant = t.splitInfo.participants.find(p => 
+              p.user === t.userId || p.user?._id === t.userId
+            );
+            if (userParticipant && userParticipant.share) {
+              amount = userParticipant.share;
+            }
+          }
+          return sum + amount;
+        }, 0);
       
       const expense = monthTransactions
         .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => {
+          // For shared expenses, use user's split amount
+          let amount = t.amount || 0;
+          if (t.splitInfo && t.splitInfo.isShared && t.splitInfo.participants) {
+            const userParticipant = t.splitInfo.participants.find(p => 
+              p.user === t.userId || p.user?._id === t.userId
+            );
+            if (userParticipant && userParticipant.share) {
+              amount = userParticipant.share;
+            }
+          }
+          return sum + amount;
+        }, 0);
 
       const balance = income - expense;
       const savingsRate = income > 0 ? Math.round((balance / income) * 100) : 0;
 
+      console.log('[HomeScreen] Calculated stats - Income:', income, 'Expense:', expense, 'Balance:', balance);
       setMonthlyStats({ income, expense, balance, savingsRate });
     } catch (error) {
       console.error('[HomeScreen] Error calculating stats:', error);
+      setMonthlyStats({ income: 0, expense: 0, balance: 0, savingsRate: 0 });
     }
-  };
+  }, [transactions]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -93,8 +219,9 @@ export default function HomeScreen({ navigation }: any) {
   // Recalculate stats when transactions change
   useEffect(() => {
     console.log('[HomeScreen] Transactions changed, count:', transactions.length);
+    calculateTotalBalance();
     calculateMonthlyStats();
-  }, [transactions]);
+  }, [transactions, calculateTotalBalance, calculateMonthlyStats]);
 
   // Handle pull-to-refresh
   const onRefresh = useCallback(async () => {
@@ -338,23 +465,27 @@ export default function HomeScreen({ navigation }: any) {
         </View>
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>₹{monthlyStats.balance.toLocaleString()}</Text>
+          <Text style={styles.balanceAmount}>₹{totalBalance.overallBalance.toLocaleString()}</Text>
           <View style={styles.balanceStats}>
             <View style={styles.balanceStat}>
-              <Text style={styles.balanceStatLabel}>Income</Text>
+              <Text style={styles.balanceStatLabel}>All Time Income</Text>
               <Text style={[styles.balanceStatValue, { color: '#10B981' }]}>
-                ₹{monthlyStats.income.toLocaleString()}
+                ₹{totalBalance.totalIncome.toLocaleString()}
               </Text>
             </View>
             <View style={styles.balanceStat}>
-              <Text style={styles.balanceStatLabel}>Expense</Text>
+              <Text style={styles.balanceStatLabel}>All Time Expense</Text>
               <Text style={[styles.balanceStatValue, { color: '#EF4444' }]}>
-                ₹{monthlyStats.expense.toLocaleString()}
+                ₹{totalBalance.totalExpense.toLocaleString()}
               </Text>
             </View>
             <View style={styles.balanceStat}>
-              <Text style={styles.balanceStatLabel}>Savings</Text>
-              <Text style={styles.balanceStatValue}>{monthlyStats.savingsRate}%</Text>
+              <Text style={styles.balanceStatLabel}>Net Worth</Text>
+              <Text style={[styles.balanceStatValue, { 
+                color: totalBalance.overallBalance >= 0 ? '#10B981' : '#EF4444' 
+              }]}>
+                ₹{totalBalance.overallBalance.toLocaleString()}
+              </Text>
             </View>
           </View>
         </View>
@@ -370,6 +501,7 @@ export default function HomeScreen({ navigation }: any) {
             tintColor={theme.colors.primary}
           />
         }
+        nestedScrollEnabled={true}
       >
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
@@ -461,8 +593,14 @@ export default function HomeScreen({ navigation }: any) {
                   />
                 </View>
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionDescription}>{transaction.description}</Text>
-                  <Text style={styles.transactionCategory}>{transaction.category}</Text>
+                  <Text style={styles.transactionDescription}>
+                    {transaction.description}
+                    {transaction.isShared && ' (Split)'}
+                  </Text>
+                  <Text style={styles.transactionCategory}>
+                    {transaction.category}
+                    {transaction.isShared && ` • Your share of ₹${transaction.fullAmount.toLocaleString()}`}
+                  </Text>
                 </View>
               </View>
               <Text

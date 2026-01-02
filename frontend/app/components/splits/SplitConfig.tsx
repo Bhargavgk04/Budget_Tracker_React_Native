@@ -90,7 +90,10 @@ export const SplitConfig: React.FC<SplitConfigProps> = ({
 
     const baseParticipants: Array<{ _id: string; name: string }> = [
       ...(includePayer ? [{ _id: paidByUserId, name: getDisplayName(paidByUserId) }] : []),
-      ...updatedParticipants.map((p) => ({ _id: p._id, name: p.name })),
+      ...updatedParticipants.map((p) => ({ 
+        _id: p._id || p.uid || generateTempId(), // Use _id, fallback to uid, or generate temp ID
+        name: p.name 
+      })),
     ];
     
     // Remove duplicates by _id

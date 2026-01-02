@@ -258,8 +258,19 @@ export const transactionAPI = {
     const payload = {
       splitType: splitConfig.splitType,
       paidBy: splitConfig.paidBy,
-      participants: (splitConfig.participants || []).map(p => ({
-        user: p.userId || p._id || p.user || undefined,
+      participants: (splitConfig.participants || []).filter(p => {
+        // Only include participants with valid ObjectId format
+        let userId = p.userId || p._id || p.user;
+        const isValidObjectId = userId && typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId);
+        
+        if (!isValidObjectId) {
+          console.warn(`[API] Skipping participant with invalid ObjectId: ${userId} (${p.name})`);
+          return false;
+        }
+        
+        return true;
+      }).map(p => ({
+        user: p.userId || p._id || p.user,
         share: p.share || 0,
         percentage: p.percentage,
       }))
@@ -273,6 +284,57 @@ export const transactionAPI = {
     }, true); // Invalidate cache
 
     console.log('[API] Split created successfully:', response);
+    return { success: true, data: response.data };
+  },
+
+  updateSplit: async (transactionId, splitConfig) => {
+    const response = await apiRequest(`/transactions/${transactionId}/split`, {
+      method: "PUT",
+      body: JSON.stringify(splitConfig),
+    }, true);
+    return { success: true, data: response.data };
+  },
+
+  deleteSplit: async (transactionId) => {
+    const response = await apiRequest(`/transactions/${transactionId}/split`, {
+      method: "DELETE",
+    }, true);
+    return { success: true, data: response.data };
+  },
+
+  settleParticipant: async (transactionId, userId) => {
+    const response = await apiRequest(`/transactions/${transactionId}/split/settle/${userId}`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }, true);
+    return { success: true, data: response.data };
+  },
+
+  getSharedTransactions: async (filters) => {
+    const params = new URLSearchParams();
+    if (filters?.startDate) params.append('startDate', filters.startDate.toISOString());
+    if (filters?.endDate) params.append('endDate', filters.endDate.toISOString());
+    if (filters?.groupId) params.append('groupId', filters.groupId);
+    if (filters?.category) params.append('category', filters.category);
+
+    const endpoint = `/transactions/shared${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await apiRequest(endpoint);
+    return { success: true, data: response.data };
+  },
+
+  getDetailedBalance: async (friendId) => {
+    const response = await apiRequest(`/transactions/balance/${friendId}`);
+    return { success: true, data: response.data };
+  },
+
+  getSplitSummary: async (filters) => {
+    const params = new URLSearchParams();
+    if (filters?.startDate) params.append('startDate', filters.startDate.toISOString());
+    if (filters?.endDate) params.append('endDate', filters.endDate.toISOString());
+    if (filters?.groupId) params.append('groupId', filters.groupId);
+
+    const endpoint = `/transactions/split-summary${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await apiRequest(endpoint);
     return { success: true, data: response.data };
   },
 };

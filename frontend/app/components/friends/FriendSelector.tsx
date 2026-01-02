@@ -153,9 +153,13 @@ export const FriendSelector: React.FC<FriendSelectorProps> = ({
 
   useEffect(() => {
     if (typeof onUidChange === 'function' && searchQuery !== undefined) {
-      onUidChange(searchQuery);
+      // Only call if the value actually changed
+      const timeoutId = setTimeout(() => {
+        onUidChange(searchQuery);
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [searchQuery]);
+  }, [searchQuery]); // Remove onUidChange from dependencies to prevent infinite loops
 
   // Only update searchQuery if it's different from value to prevent infinite loop
   useEffect(() => {
@@ -286,13 +290,13 @@ export const FriendSelector: React.FC<FriendSelectorProps> = ({
 
       {showResults && searchResults.length > 0 && (
         <View style={styles.resultsContainer}>
-          <FlatList
-            data={searchResults}
-            renderItem={renderFriendItem}
-            keyExtractor={(item) => item._id}
-            style={styles.resultsList}
-            keyboardShouldPersistTaps="handled"
-          />
+          <View style={styles.resultsList}>
+            {searchResults.map((item) => (
+              <View key={item._id}>
+                {renderFriendItem({ item })}
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
@@ -303,25 +307,14 @@ export const FriendSelector: React.FC<FriendSelectorProps> = ({
             style={styles.addNewButton}
             onPress={() => {
               setShowResults(false);
-              if (multi) {
-                const newFriend = { uid: searchQuery, name: searchQuery, _id: searchQuery } as any;
-                setSelectedFriends(prev => {
-                  const next = [...prev, newFriend];
-                  if (onSelectMany) onSelectMany(next);
-                  return next;
-                });
-              } else {
-                if (typeof onSelect === 'function') {
-                  // Defer the onSelect call to avoid setState during render
-                  setTimeout(() => {
-                    onSelect({
-                      uid: searchQuery,
-                      name: searchQuery,
-                      isNew: true
-                    } as any);
-                  }, 0);
-                }
-              }
+              // Show warning that new friends can't be used for splits
+              Alert.alert(
+                "Friend Not Found", 
+                `User "${searchQuery}" was not found. To split expenses, you need to add them as a friend first. You can still add this transaction without splitting.`,
+                [
+                  { text: "OK", style: "default" }
+                ]
+              );
             }}
           >
             <Text style={styles.addNewText}>+ Add new "{searchQuery}"</Text>
